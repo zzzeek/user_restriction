@@ -1,0 +1,24 @@
+- name: get IP number of controller
+  shell: |
+    HOSTNAME=`hostname`
+
+    # use ahostsv6 for ipv6...
+    LOCAL_IP=`getent ahostsv4 ${HOSTNAME} | grep ${HOSTNAME} | awk '{ print $1 }'`
+    echo "${LOCAL_IP}"
+  register: command_output
+
+- name: store IP number
+  set_fact:
+    ip_number : "{{ command_output.stdout }}"
+
+- name: "{{ item.name }}: rewrite puppet-generated conf file on controller"
+  include_tasks: write_conf.yml
+  vars:
+    application_name: "{{ item.name }}"
+    puppet_config_name: "{{ item.puppet_config_name }}"
+    config: "{{ item.config }}"
+    section_name: "{{ item.section_name }}"
+    parameter_name: "{{ item.parameter_name }}"
+    local_ip: "{{ ip_number }}"
+  with_items: "{{ config_locations }}"
+

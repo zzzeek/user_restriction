@@ -1,0 +1,12 @@
+- name: run install
+  gather_facts: false
+  hosts: controllers
+  become: yes
+  become_user: root
+  roles:
+    - { role: update_haproxy, tags: ['update-haproxy']}
+    - { role: update_conf, tags: ['update-conf']}
+    - { role: update_nova_cells, tags: ['update-nova-cells']}
+    - { role: restart_containers, tags: ['restart-containers']}
+
+

@@ -1,24 +1,18 @@
-- name: get IP number of controller
+
+- name: get MySQL root password from hiera
+  shell: /bin/hiera -c /etc/puppet/hiera.yaml "mysql::server::root_password"
+  register: hiera_root_output
+
+- name: get local galera container name
   shell: |
-    HOSTNAME=`hostname`
+    {{ container_cli }} ps --format \{\{'.Names'\}\} --filter name=galera
+  register: galera_container_output
 
-    # use ahostsv6 for ipv6...
-    LOCAL_IP=`getent ahostsv4 ${HOSTNAME} | grep ${HOSTNAME} | awk '{ print $1 }'`
-    echo "${LOCAL_IP}"
-  register: command_output
-
-- name: store IP number
+- name: set local galera container name, mysql command
   set_fact:
-    ip_number : "{{ command_output.stdout }}"
-
-# note we rely upon command -v failing if neither can be found
-- name: determine docker or podman
-  shell: command -v podman docker
-  register: command_output
-
-- name: store docker or podman
-  set_fact:
-    container_cli: "{{ command_output.stdout_lines[0] }}"
+    galera_container: "{{ galera_container_output.stdout_lines[0] }}"
+    mysql_root_password: "{{ hiera_root_output.stdout_lines[0] }}"
+    mysql_cli: "{{ container_cli }} exec -i {{ galera_container_output.stdout_lines[0] }} mysql -u root --password={{ hiera_root_output.stdout_lines[0] }} -Ns -e"
 
 - name: "{{ item.name }}: rewrite puppet-generated conf file on controller"
   include_tasks: write_conf.yml

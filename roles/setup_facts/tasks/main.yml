@@ -1,0 +1,19 @@
+- name: get local IP number of controller
+  shell: |
+    HOSTNAME=`hostname`
+
+    # use ahostsv6 for ipv6...
+    LOCAL_IP=`getent ahostsv4 ${HOSTNAME} | grep ${HOSTNAME} | awk '{ print $1 }'`
+    echo "${LOCAL_IP}"
+  register: local_ipcommand_output
+
+# note we rely upon command -v failing if neither can be found
+- name: determine docker or podman
+  shell: command -v podman docker
+  register: container_command_output
+
+- name: store facts
+  set_fact:
+    container_cli: "{{ container_command_output.stdout_lines[0] }}"
+    local_ip_address: "{{ local_ipcommand_output.stdout }}"
+    local_mysql_port: 3307

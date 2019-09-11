@@ -5,7 +5,7 @@
 #    config: config file path relative to a server or container
 #    section_name: "{{ item.section_name }}"
 #    parameter_name: "{{ item.parameter_name }}"
-#    local_ip: "{{ ip_number }}"
+#    local_ip: "{{ local_ip_address }}"
 
 # notes:
 # get existing password for service:
@@ -44,13 +44,13 @@
 
 - name: "{{ application_name }}: find a container image we can use to run commands"
   shell: |
-    {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ containers[0] }} | head -1
+    {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ containers[0] }}
   register: command_output
 
 - name: "{{ application_name }}: set container image name fact"
   set_fact:
-    container_image: "{{ command_output.stdout }}"
-    script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}' {{ command_output.stdout }}"
+    container_image: "{{ command_output.stdout_lines[0] }}"
+    script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}' {{ command_output.stdout_lines[0] }}"
 
 - name: "{{ application_name }}: read current URL and split"
   shell: "{{ script_content }}"
@@ -69,20 +69,54 @@
 
 - name: "{{ application_name }}: set existing database URL components"
   set_fact:
-    db_backend: "{{ command_output.stdout_lines[0]}}"
-    db_user: "{{ command_output.stdout_lines[1]}}"
-    db_host: "{{ command_output.stdout_lines[2]}}"
-    db_name: "{{ command_output.stdout_lines[3]}}"
-    read_group: "{{ command_output.stdout_lines[4]}}"
+    db_backend: "{{ command_output.stdout_lines[0] }}"
+    db_user: "{{ command_output.stdout_lines[1] }}"
+    db_host: "{{ command_output.stdout_lines[2] }}"
+    db_name: "{{ command_output.stdout_lines[3] }}"
+    read_group: "{{ command_output.stdout_lines[4] }}"
+
+- name: "{{ application_name }}: did we make a password yet"
+  shell: "{{ script_runner }} crudini --get {{ account_per_controller }} {{ application_name }} password"
+  register: mysql_password_file_output
+  ignore_errors: yes
+
+- name: "{{ application_name }}: register password fact from existing"
+  set_fact:
+    mysql_generated_password: "{{ mysql_password_file_output.stdout_lines[0] }}"
+  when: mysql_password_file_output.rc == 0
+
+- name: "{{ application_name }}: create new password if not exists"
+  shell: "{{ mysql_cli }} 'SELECT sha2(rand(), 256)'"
+  register: mysql_password_generate_output
+#  when: mysql_password_file_output.rc != 0
+
+- name: "{{ application_name }}: register password fact from generated"
+  set_fact:
+    mysql_generated_password: "{{ mysql_password_generate_output.stdout_lines[0] }}"
+#  when: mysql_password_file_output.rc != 0
+
+- name: "{{ application_name }}: determine new user name, derived from controller hostname"
+  shell: |
+      HOSTNAME=`hostname`
+      CONTROLLER_IDX=`echo ${HOSTNAME} | sed 's/overcloud\|controller\|-//g'`
+      NEW_USER="{{ db_user }}${CONTROLLER_IDX}"
+      echo "${NEW_USER}"
+  register: username_output
+
+- name: "{{ application_name }}: set username password facts"
+  set_fact:
+    db_apc_username: "{{ username_output.stdout_lines[0] }}"
+    db_apc_password: "{{ mysql_generated_password }}"
+
 
 - name: "{{ application_name }}: write data to account_per_controller.cnf"
   shell: "{{ script_content }}"
   vars:
     script_content: |
       cat << EOF | {{ script_runner }} bash
-          crudini --set {{ account_per_controller }} {{ application_name }} user some_user
-          crudini --set {{ account_per_controller }} {{ application_name }} password some_password
-          crudini --set {{ account_per_controller }} {{ application_name }} host 10.0.0.1
+          crudini --set {{ account_per_controller }} {{ application_name }} user {{ db_apc_username }}
+          crudini --set {{ account_per_controller }} {{ application_name }} password {{ db_apc_password }}
+          crudini --set {{ account_per_controller }} {{ application_name }} host {{ local_ip_address }}
           crudini --set {{ account_per_controller }} {{ application_name }} port 3307
-          crudini --set {{ account_per_controller }} {{ application_name }} bind_address 10.0.0.1
+          crudini --set {{ account_per_controller }} {{ application_name }} bind_address {{ local_ip_address }}
       EOF

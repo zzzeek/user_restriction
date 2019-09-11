@@ -1,5 +1,3 @@
-openstack_controller_puppet_generated: /var/lib/config-data/puppet-generated
-
 config_locations:
   - name: keystone
     puppet_config_name: keystone

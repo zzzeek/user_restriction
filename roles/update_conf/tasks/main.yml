@@ -11,6 +11,15 @@
   set_fact:
     ip_number : "{{ command_output.stdout }}"
 
+# note we rely upon command -v failing if neither can be found
+- name: determine docker or podman
+  shell: command -v podman docker
+  register: command_output
+
+- name: store docker or podman
+  set_fact:
+    container_cli: "{{ command_output.stdout_lines[0] }}"
+
 - name: "{{ item.name }}: rewrite puppet-generated conf file on controller"
   include_tasks: write_conf.yml
   vars:
@@ -20,5 +29,6 @@
     section_name: "{{ item.section_name }}"
     parameter_name: "{{ item.parameter_name }}"
     local_ip: "{{ ip_number }}"
+    containers: "{{ item.containers }}"
   with_items: "{{ config_locations }}"
 

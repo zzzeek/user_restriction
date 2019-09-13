@@ -1,6 +1,6 @@
 
-- name: "{{ item.name }}: rewrite puppet-generated conf file on controller"
-  include_tasks: write_service_conf.yml
+- name: "{{ item.name }}: create mysql grants"
+  include_tasks: create_mysql_grants.yml
   vars:
     application_name: "{{ item.name }}"
     database_name: "{{ item.name }}"

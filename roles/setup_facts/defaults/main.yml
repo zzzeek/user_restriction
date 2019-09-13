@@ -49,6 +49,17 @@ config_locations:
     containers:
       - glance_api
 
+  # don't know if this is right yet.  purposely putting a config
+  # that doesnt exist yet.
+  - name: zaqar
+    puppet_config_name: zaqar
+    hiera: "zaqar::management::sqlalchemy::uri"
+    config: /etc/zaqar/zaqar.conf
+    section_name: drivers:storage:sqlalchemy
+    parameter_name: uri
+    containers:
+      - zaqar
+
 # etc: - do a grep for tripleo.cnf to find other services?
 #  ./nova_placement/etc/my.cnf.d/tripleo.cnf
 #./heat/etc/my.cnf.d/tripleo.cnf

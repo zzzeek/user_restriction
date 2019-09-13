@@ -1,6 +1,6 @@
-- name: get haproxy image
+- name: get haproxy container name
   shell: |
-    {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name=haproxy
+    {{ container_cli }} ps --format \{\{'.Names'\}\} --filter name=haproxy
   register: command_output
 
 - name: add a local IP bind for haproxy
@@ -9,3 +9,6 @@
     line: "  bind {{ local_ip_address }}:3307"
     insertafter: "listen mysql"
 
+- name: restart haproxy
+  shell: |
+    {{ container_cli }} restart {{ command_output.stdout_lines[0] }}

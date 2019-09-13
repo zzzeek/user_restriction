@@ -1,0 +1,44 @@
+- name: "{{ application_name }}: see if puppet config for applcation exists"
+  stat:
+    path: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}"
+  register: puppet_config_stat
+
+- block:
+    - name: "{{ application_name }}: set controller location for account_per_controller.cnf"
+      set_fact:
+          controller_account_per_controller: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}/etc/my.cnf.d/account_per_controller.cnf"
+
+    - name: "{{ application_name }}: find a container image we can use to run commands"
+      shell: |
+        {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ containers[0] }}
+      register: command_output
+
+    - name: "{{ application_name }}: determine a script runner docker image"
+      set_fact:
+        container_image: "{{ command_output.stdout_lines[0] }}"
+        script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}' {{ command_output.stdout_lines[0] }}"
+
+
+    - name: "{{ application_name }}: read database info from account_per_controller.conf"
+      shell: "{{ script_content }}"
+      vars:
+        script_content: |
+          crudini --get {{ controller_account_per_controller }} {{ application_name }} user
+          crudini --get {{ controller_account_per_controller }} {{ application_name }} password
+          crudini --get {{ controller_account_per_controller }} {{ application_name }} bind_address
+      register: db_config_command_output
+
+    - name: "{{ application_name }}: set existing database URL components"
+      set_fact:
+        apc_db_user: "{{ db_config_command_output.stdout_lines[0] }}"
+        apc_db_password: "{{ db_config_command_output.stdout_lines[1] }}"
+        apc_db_bind_address: "{{ db_config_command_output.stdout_lines[2] }}"
+
+    - name: "{{ application_name }}: create user"
+      shell: |
+        {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ apc_db_user }}'@'{{ apc_db_bind_address }}' IDENTIFIED BY '{{ apc_db_password }}';"
+        {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ apc_db_user }}'@'{{ apc_db_bind_address }}';"
+
+
+  when: puppet_config_stat.stat.exists
+

@@ -5,6 +5,7 @@
     loop_var: write_apc_item
   vars:
     application_name: "{{ write_apc_item.name }}"
+    database_name: "{{ item.name }}"
     puppet_config_name: "{{ write_apc_item.puppet_config_name }}"
     hiera: "{{ write_apc_item.hiera }}"
     config: "{{ write_apc_item.config }}"

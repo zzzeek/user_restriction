@@ -1,15 +1,11 @@
 
 - name: "{{ item.name }}: alter tripleo-level grants"
   include_tasks: alter_ooo_mysql_grant.yml
+  loop_control:
+    loop_var: write_service_item
   vars:
-    application_name: "{{ item.name }}"
-    database_name: "{{ item.name }}"
-    puppet_config_name: "{{ item.puppet_config_name }}"
-    hiera: "{{ item.hiera }}"
-    config: "{{ item.config }}"
-    section_name: "{{ item.section_name }}"
-    parameter_name: "{{ item.parameter_name }}"
-    local_ip: "{{ ip_number }}"
-    containers: "{{ item.containers }}"
-  with_items: "{{ config_locations }}"
+    application_name: "{{ write_service_item.key }}"
+    config_data: "{{ write_service_item.value }}"
+  with_dict: "{{ config_locations }}"
+  when: "{{ write_service_item.value.present | bool }}"
 

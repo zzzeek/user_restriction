@@ -1,56 +1,19 @@
-- name: "{{ application_name }}: see if puppet config for applcation exists"
-  stat:
-    path: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}"
-  register: puppet_config_stat
-
-- block:
-    - name: "{{ application_name }}: read tripleo configured database URL from hiera"
-      shell: |
-        URL=`hiera -c /etc/puppet/hiera.yaml "{{ hiera }}"`
-        if [[ "${URL}" == "nil" ]]; then
-          exit -1
-        else
-          echo "${URL}"
-        fi
-      register: existing_url_command_output
-
-    - name: "{{ application_name }}: split components from tripleo-configured URL"
-      shell: "{{ script_content }}"
-      vars:
-        script_content: |
-          cat << EOF | {{ script_runner }} python
-          from __future__ import print_function
-          from sqlalchemy.engine import url
-          u = url.make_url('{{ existing_url_command_output.stdout_lines[0] }}')
-          print("\n".join(
-              [u.get_backend_name() or '', u.username or '', u.host or '',
-               u.database, u.password]
-          ))
-          EOF
-      register: command_output
-
-    - name: "{{ application_name }}: set existing database URL components"
-      set_fact:
-        db_backend: "{{ command_output.stdout_lines[0] }}"
-        db_user: "{{ command_output.stdout_lines[1] }}"
-        db_host: "{{ command_output.stdout_lines[2] }}"
-        db_name: "{{ command_output.stdout_lines[3] }}"
-        db_password: "{{ command_output.stdout_lines[4] }}"
-
-  when: puppet_config_stat.stat.exists
-
-
+- name: "{{ application_name }}: set variables"
+  set_fact:
+      tripleo_db_user: "{{ config_data.tripleo_db_user }}"
+      tripleo_db_password: "{{ config_data.tripleo_db_password }}"
+      database_name: "{{ config_data.tripleo_db_name }}"
 
 - block:
     - name: "{{ application_name }}: enable grants"
       shell: |
-        {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ db_user }}'@'%' IDENTIFIED BY PASSWORD '{{ db_password }}';"
-        {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ db_user }}'@'%';"
-  when: puppet_config_stat.stat.exists and enable_ooo_grants
+        {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ tripleo_db_user }}'@'%' IDENTIFIED BY PASSWORD '{{ tripleo_db_password }}';"
+        {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ tripleo_db_user }}'@'%';"
+  when: enable_ooo_grants
 
 - block:
     - name: "{{ application_name }}: disable grants"
       shell: |
-        {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ database_name }}.* FROM '{{ db_user }}'@'%';"
-  when: puppet_config_stat.stat.exists and not enable_ooo_grants
+        {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ database_name }}.* FROM '{{ tripleo_db_user }}'@'%';"
+  when: not enable_ooo_grants
 

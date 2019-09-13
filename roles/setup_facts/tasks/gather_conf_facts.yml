@@ -1,0 +1,80 @@
+- name: "{{ application_name }}: see if puppet config for application exists"
+  stat:
+    path: "{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}"
+  register: puppet_config_stat
+
+- name: "{{ application_name }}: not present on controllers"
+  set_fact:
+    config_locations: "{{ config_locations | combine( {application_name: {'present': false} | combine(config_locations[application_name])}) }}"
+  when: not puppet_config_stat.stat.exists
+
+- block:
+    - name: "{{ application_name }}: set controller location for account_per_controller.cnf"
+      set_fact:
+        controller_account_per_controller: "{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}/etc/my.cnf.d/account_per_controller.cnf"
+        container_account_per_controller: "/etc/my.cnf.d/account_per_controller.cnf"
+
+    - name: "{{ application_name }}: find a container image we can use to run commands"
+      shell: |
+        {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ config_data.containers[0] }}
+      register: container_command_output
+
+    - name: "{{ application_name }}: determine a script runner docker image"
+      set_fact:
+        container_image: "{{ container_command_output.stdout_lines[0] }}"
+        script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}' {{ container_command_output.stdout_lines[0] }}"
+
+    - name: "{{ application_name }}: read tripleo configured database URL from hiera"
+      shell: |
+        URL=`hiera -c /etc/puppet/hiera.yaml "{{ config_data.hiera }}"`
+        if [[ "${URL}" == "nil" ]]; then
+          exit -1
+        else
+          echo "${URL}"
+        fi
+      register: tripleo_url_command_output
+
+    - name: "{{ application_name }}: split components from tripleo-configured URL"
+      shell: "{{ script_content }}"
+      vars:
+        script_content: |
+          cat << EOF | {{ script_runner }} python
+          from __future__ import print_function
+          from sqlalchemy.engine import url
+          u = url.make_url('{{ tripleo_url_command_output.stdout_lines[0] }}')
+          print("\n".join(
+              [u.get_backend_name() or '', u.username or '', u.host or '',
+               u.database, u.password, u.query.get("read_default_group", '')]
+          ))
+          EOF
+      register: command_output
+
+    - name: "{{ application_name }}: set existing database URL components"
+      set_fact:
+        ooo_db_backend: "{{ command_output.stdout_lines[0] }}"
+        ooo_db_user: "{{ command_output.stdout_lines[1] }}"
+        ooo_db_host: "{{ command_output.stdout_lines[2] }}"
+        ooo_db_name: "{{ command_output.stdout_lines[3] }}"
+        ooo_db_password: "{{ command_output.stdout_lines[4] }}"
+        ooo_db_read_default_group: "{{ command_output.stdout_lines[5] }}"
+
+    - name: "{{ application_name }}: organized gathered data"
+      set_fact:
+        new_record:
+          - present: true
+          - container_image: "{{ container_image }}"
+          - script_runner: "{{ script_runner }}"
+          - controller_config_file: "{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}"
+          - tripleo_db_url: "{{ tripleo_url_command_output.stdout_lines[0] }}"
+          - tripleo_db_user: "{{ ooo_db_user }}"
+          - tripleo_db_host: "{{ ooo_db_host }}"
+          - tripleo_db_name: "{{ ooo_db_name }}"
+          - tripleo_db_password: "{{ ooo_db_password }}"
+          - container_account_per_controller: "{{ container_account_per_controller }}"
+          - controller_account_per_controller: "{{ controller_account_per_controller }}"
+
+    - name: "{{ application_name }}: add gathered data"
+      set_fact:
+        config_locations: "{{ config_locations | combine( {application_name: new_record | combine(config_locations[application_name])}) }}"
+
+  when: puppet_config_stat.stat.exists

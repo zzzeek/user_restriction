@@ -4,14 +4,7 @@
   loop_control:
     loop_var: write_apc_item
   vars:
-    application_name: "{{ write_apc_item.name }}"
-    database_name: "{{ item.name }}"
-    puppet_config_name: "{{ write_apc_item.puppet_config_name }}"
-    hiera: "{{ write_apc_item.hiera }}"
-    config: "{{ write_apc_item.config }}"
-    section_name: "{{ write_apc_item.section_name }}"
-    parameter_name: "{{ write_apc_item.parameter_name }}"
-    local_ip: "{{ ip_number }}"
-    containers: "{{ write_apc_item.containers }}"
-  with_items: "{{ config_locations }}"
-
+    application_name: "{{ write_apc_item.key }}"
+    config_data: "{{ write_apc_item.value }}"
+  with_dict: "{{ config_locations }}"
+  when: "{{ write_apc_item.value.present | bool }}"

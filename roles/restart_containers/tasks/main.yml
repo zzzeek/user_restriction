@@ -2,11 +2,12 @@
 - name: "{{ item.name }}: restart containers"
   shell: |
     set -x
-    for container_name in {{ item.containers | map('quote') | join(' ') }}; do
+    for container_name in {{ item.value.containers | map('quote') | join(' ') }}; do
       container_exists=`{{ container_cli }} ps --all --format '#'\{\{'.Names'\}\}'#' --filter name="${container_name}" | grep "#${container_name}#"`
       if [[ "${container_exists}" != "" ]]; then
           {{ container_cli }} restart ${container_name}
       fi
     done
-  with_items: "{{ config_locations }}"
+  with_dict: "{{ config_locations }}"
+  when: "{{ item.value.present | bool }}"
 

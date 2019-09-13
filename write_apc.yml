@@ -4,7 +4,7 @@
   become: yes
   become_user: root
   roles:
-    - { role: setup_facts, tags: ['always']}
+    - { role: setup_facts, tags: ['always', 'setup-facts']}
     - { role: update_haproxy, tags: ['update-haproxy']}
     - { role: write_apc_conf, tags: ['write-apc-conf']}
     - { role: write_service_urls, tags: ['write-service-urls']}

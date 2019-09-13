@@ -2,7 +2,84 @@ openstack_controller_puppet_generated: /var/lib/config-data/puppet-generated
 
 
 config_locations:
-  - name: keystone
+  aodh:
+    puppet_config_name: aodh_base
+    hiera: "aodh::db::database_connection"
+    config: /etc/aodh/aodh.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - aodh_base
+
+#  barbican:
+#    puppet_config_name: barbican
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#
+#  cinder:
+#    puppet_config_name: cinder
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#
+#  ec2-api:
+#    puppet_config_name: ec2_api
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#
+#  gnocchi:
+#    puppet_config_name: gnocchi
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+
+  glance:
+    puppet_config_name: glance_api
+    hiera: "glance::api::database_connection"
+    config: /etc/glance/glance-api.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - glance_api
+
+#  heat:
+#    puppet_config_name: heat_api
+#    hiera: "heat::database_connection"
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+      -
+
+#  ironic:
+#    puppet_config_name: ironic
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#      -
+#
+#  ironic_inspector:
+#    puppet_config_name: ironic_inspector
+#    hiera: "ironic::inspector::db::database_connection"
+#    config: /etc/ironic-inspector/inspector.conf
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#      - ironic_inspector
+#
+  keystone:
     puppet_config_name: keystone
     hiera: "keystone::database_connection"
     config: /etc/keystone/keystone.conf
@@ -12,7 +89,41 @@ config_locations:
       - keystone
       - keystone_cron
 
-  - name: nova
+#  manila:
+#    puppet_config_name: manila
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#      -
+#  mistral:
+#    puppet_config_name: mistral
+#    hiera: ""
+#    config:
+#    section_name: database
+#   parameter_name: connection
+#    containers:
+
+  neutron:
+    puppet_config_name: neutron
+    hiera: "neutron::server::database_connection"
+    config: /etc/neutron/neutron.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - neutron
+
+  neutron_plumgrid:
+    puppet_config_name: neutron_plugin_plumgrid
+    hiera: "neutron::plugins::plumgrid::connection"
+    config: /etc/neutron/plugins/plumgrid/plumgrid.ini
+    section_name: database
+    parameter_name: connection
+    containers:
+      - neutron_plugin_plumgrid
+
+  nova:
     puppet_config_name: nova
     hiera: "nova::database_connection"
     config: /etc/nova/nova.conf
@@ -22,7 +133,7 @@ config_locations:
       - nova_conductor
       - nova_metadata
 
-  - name: nova_api
+  nova_api:
     puppet_config_name: nova
     hiera: "nova::api_database_connection"
     config: /etc/nova/nova.conf
@@ -31,7 +142,8 @@ config_locations:
     containers:
       - nova_api
 
-  - name: nova_placement
+    # note that nova_placement in OSP13 is placement in OSP15
+  nova_placement:
     puppet_config_name: nova
     hiera: "nova::placement_database_connection"
     config: /etc/nova/nova.conf
@@ -40,32 +152,45 @@ config_locations:
     containers:
       - nova_placement
 
-  - name: glance
-    puppet_config_name: glance_api
-    hiera: "glance::api::database_connection"
-    config: /etc/glance/glance-api.conf
-    section_name: database
-    parameter_name: connection
-    containers:
-      - glance_api
 
-  # don't know if this is right yet.  purposely putting a config
-  # that doesnt exist yet.
-  - name: zaqar
+#  octavia:
+#    puppet_config_name: octavia
+#    hiera: ""
+#   config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#
+#    # OSP15 and above
+#  placement:
+#    puppet_config_name: placement
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#      -
+#  sahara:
+#    puppet_config_name: sahara
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#
+#  tacker:
+#    puppet_config_name: tacker
+#    hiera: ""
+#    config:
+#    section_name: database
+#    parameter_name: connection
+#    containers:
+#      -
+  zaqar:
     puppet_config_name: zaqar
     hiera: "zaqar::management::sqlalchemy::uri"
     config: /etc/zaqar/zaqar.conf
     section_name: drivers:storage:sqlalchemy
     parameter_name: uri
     containers:
-      - zaqar
-
-# etc: - do a grep for tripleo.cnf to find other services?
-#  ./nova_placement/etc/my.cnf.d/tripleo.cnf
-#./heat/etc/my.cnf.d/tripleo.cnf
-##/nova/etc/my.cnf.d/tripleo.cnf
-#./glance_api/etc/my.cnf.d/tripleo.cnf
-#./keystone/etc/my.cnf.d/tripleo.cnf
-#./cinder/etc/my.cnf.d/tripleo.cnf
-#./neutron/etc/my.cnf.d/tripleo.cnf
 

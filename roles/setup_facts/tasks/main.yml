@@ -32,3 +32,21 @@
     galera_container: "{{ galera_container_output.stdout_lines[0] }}"
     mysql_root_password: "{{ hiera_root_output.stdout_lines[0] }}"
     mysql_cli: "{{ container_cli }} exec -i {{ galera_container_output.stdout_lines[0] }} mysql -u root --password={{ hiera_root_output.stdout_lines[0] }} -Ns -e"
+
+- name: "{{ item.name }}: gather other facts for reuse"
+  include_tasks: gather_conf_facts.yml
+  loop_control:
+    loop_var: gather_conf_item
+  vars:
+    application_name: "{{ gather_conf_item.key }}"
+    config_data: "{{ gather_conf_item.value }}"
+  with_dict: "{{ config_locations }}"
+
+- name: "print config data"
+  debug:
+    msg: "{{ gather_conf_item }}"
+  loop_control:
+    loop_var: gather_conf_item
+  with_dict: "{{ config_locations }}"
+  when: "{{ gather_conf_item.value.present | bool }}"
+

@@ -5,6 +5,11 @@ SCRIPT_HOME=`realpath $DIRNAME`
 
 ANSIBLE_BIN=`command -v ansible-playbook /bin/ansible-playbook /usr/bin/ansible-playbook | head -1`
 
+if [[ ! $ANSIBLE_BIN ]]; then
+    echo "can't locate ansible-playbook executable"
+    exit -1
+fi
+
 set -e
 set -x
 
@@ -35,13 +40,14 @@ function revert {
 main() {
 	INSTALL_CMDS="dryrun install revert"
 
-    CMDS="$@"
+    CMD="$1"
+    shift
 
-    if [[ "${CMDS}" == "" ]]; then
-        CMDS="help"
+    if [[ "${CMD}" == "" ]]; then
+        CMD="help"
     fi
 
-    if [[ "${CMDS}" == *"help"* ]]; then
+    if [[ "${CMD}" == *"help"* ]]; then
         set +x
         echo -e "\nusage: $0 <commands>\n"
         echo -e "\n dryrun - do a dry run, showing what we're doing but don't change anything"
@@ -49,12 +55,12 @@ main() {
         echo -e "\n revert - revert the per-controller configurations"
     fi
 
-    if [[ "${CMDS}" == *"dryrun"* ]]; then
-        dryrun
-    elif [[ "${CMDS}" == *"revert"* ]]; then
-        revert
-    elif [[ "${CMDS}" == *"install"* ]]; then
-        install
+    if [[ "${CMD}" == *"dryrun"* ]]; then
+        dryrun $@
+    elif [[ "${CMD}" == *"revert"* ]]; then
+        revert $@
+    elif [[ "${CMD}" == *"install"* ]]; then
+        install $@
     fi
 
 

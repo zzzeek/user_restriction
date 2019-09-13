@@ -1,6 +1,6 @@
 
 - name: "{{ item.name }}: rewrite puppet-generated conf file on controller"
-  include_tasks: write_conf.yml
+  include_tasks: write_service_conf.yml
   vars:
     application_name: "{{ item.name }}"
     puppet_config_name: "{{ item.puppet_config_name }}"

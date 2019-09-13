@@ -24,6 +24,11 @@
   set_fact:
       account_per_controller: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}/etc/my.cnf.d/account_per_controller.cnf"
 
+- name: "{{ application_name }}: find a container image we can use to run commands"
+  shell: |
+    {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ containers[0] }}
+  register: command_output
+
 - name: "{{ application_name }}: determine a script runner docker image"
   set_fact:
     container_image: "{{ command_output.stdout_lines[0] }}"
@@ -39,11 +44,6 @@
       echo "${URL}"
     fi
   register: existing_url_command_output
-
-- name: "{{ application_name }}: find a container image we can use to run commands"
-  shell: |
-    {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ containers[0] }}
-  register: command_output
 
 - name: "{{ application_name }}: split components from tripleo-configured URL"
   shell: "{{ script_content }}"
@@ -101,15 +101,16 @@
     db_apc_username: "{{ username_output.stdout_lines[0] }}"
     db_apc_password: "{{ mysql_generated_password }}"
 
-
 - name: "{{ application_name }}: write data to account_per_controller.cnf"
-  shell: "{{ script_content }}"
-  vars:
-    script_content: |
-      cat << EOF | {{ script_runner }} bash
-          crudini --set {{ account_per_controller }} {{ application_name }} user {{ db_apc_username }}
-          crudini --set {{ account_per_controller }} {{ application_name }} password {{ db_apc_password }}
-          crudini --set {{ account_per_controller }} {{ application_name }} host {{ local_ip_address }}
-          crudini --set {{ account_per_controller }} {{ application_name }} port 3307
-          crudini --set {{ account_per_controller }} {{ application_name }} bind_address {{ local_ip_address }}
-      EOF
+  ini_file:
+    path: "{{ account_per_controller }}"
+    section: "{{ application_name }}"
+    option: "{{ item.parameter_name }}"
+    value: "{{ item.value }}"
+  with_items:
+    - {parameter_name: "user", value: "{{ db_apc_username }}"}
+    - {parameter_name: "password", value: "{{ db_apc_password }}"}
+    - {parameter_name: "host", value: "{{ local_ip_address }}"}
+    - {parameter_name: "port", value: "3307"}
+    - {parameter_name: "bind_address", value: "{{ local_ip_address }}"}
+

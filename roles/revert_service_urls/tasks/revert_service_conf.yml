@@ -1,6 +1,7 @@
-- name: "{{ application_name }}: set location for account_per_controller.cnf"
-  set_fact:
-      account_per_controller: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}/etc/my.cnf.d/account_per_controller.cnf"
+- name: "{{ application_name }}: find a container image we can use to run commands"
+  shell: |
+    {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ containers[0] }}
+  register: command_output
 
 - name: "{{ application_name }}: determine a script runner docker image"
   set_fact:
@@ -28,9 +29,9 @@
   register: existing_url_command_output
 
 - name: "{{ application_name }}: write URL into service conf file"
-  shell: "{{ script_content }}"
-  vars:
-    script_content: |
-      cat << EOF | {{ script_runner }} bash
-          crudini --set {{ config_file }} {{ section_name }} {{ parameter_name }} {{ existing_url_command_output.stdout_lines[0] }}
-      EOF
+  ini_file:
+    path: "{{config_file }}"
+    section: "{{ section_name }}"
+    option: "{{ parameter_name }}"
+    value: "{{ existing_url_command_output.stdout_lines[0] }}"
+

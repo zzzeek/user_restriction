@@ -24,26 +24,21 @@
         container_image: "{{ container_command_output.stdout_lines[0] }}"
         script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}' {{ container_command_output.stdout_lines[0] }}"
 
-    - name: "{{ application_name }}: read tripleo configured database URL from hiera"
-      shell: |
-        URL=`hiera -c /etc/puppet/hiera.yaml "{{ config_data.hiera }}"`
-        if [[ "${URL}" == "nil" ]]; then
-          exit -1
-        else
-          echo "${URL}"
-        fi
-      register: tripleo_url_command_output
-
-    - name: "{{ application_name }}: split components from tripleo-configured URL"
+    - name: "{{ application_name }}: read tripleo-configured URL from hiera and split"
       shell: "{{ script_content }}"
       vars:
         script_content: |
+          URL=`hiera -c /etc/puppet/hiera.yaml "{{ config_data.hiera }}"`
+          if [[ "${URL}" == "nil" ]]; then
+            exit -1
+          fi
+
           cat << EOF | {{ script_runner }} python
           from __future__ import print_function
           from sqlalchemy.engine import url
-          u = url.make_url('{{ tripleo_url_command_output.stdout_lines[0] }}')
+          u = url.make_url('${URL}')
           print("\n".join(
-              [u.get_backend_name() or '', u.username or '', u.host or '',
+              ['${URL}', u.get_backend_name() or '', u.username or '', u.host or '',
                u.database, u.password, u.query.get("read_default_group", '')]
           ))
           EOF
@@ -51,12 +46,13 @@
 
     - name: "{{ application_name }}: set existing database URL components"
       set_fact:
-        ooo_db_backend: "{{ command_output.stdout_lines[0] }}"
-        ooo_db_user: "{{ command_output.stdout_lines[1] }}"
-        ooo_db_host: "{{ command_output.stdout_lines[2] }}"
-        ooo_db_name: "{{ command_output.stdout_lines[3] }}"
-        ooo_db_password: "{{ command_output.stdout_lines[4] }}"
-        ooo_db_read_default_group: "{{ command_output.stdout_lines[5] }}"
+        ooo_db_url: "{{ command_output.stdout_lines[0] }}"
+        ooo_db_backend: "{{ command_output.stdout_lines[1] }}"
+        ooo_db_user: "{{ command_output.stdout_lines[2] }}"
+        ooo_db_host: "{{ command_output.stdout_lines[3] }}"
+        ooo_db_name: "{{ command_output.stdout_lines[4] }}"
+        ooo_db_password: "{{ command_output.stdout_lines[5] }}"
+        ooo_db_read_default_group: "{{ command_output.stdout_lines[6] }}"
 
     - name: "{{ application_name }}: organized gathered data"
       set_fact:
@@ -64,8 +60,8 @@
           - present: true
           - container_image: "{{ container_image }}"
           - script_runner: "{{ script_runner }}"
-          - controller_config_file: "{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}"
-          - tripleo_db_url: "{{ tripleo_url_command_output.stdout_lines[0] }}"
+          - controller_config_file: "{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}{{ config_data.config }}"
+          - tripleo_db_url: "{{ ooo_db_url }}"
           - tripleo_db_user: "{{ ooo_db_user }}"
           - tripleo_db_host: "{{ ooo_db_host }}"
           - tripleo_db_name: "{{ ooo_db_name }}"

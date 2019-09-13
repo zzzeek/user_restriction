@@ -59,8 +59,7 @@ config_locations:
 #    section_name: database
 #    parameter_name: connection
 #    containers:
-      -
-
+#
 #  ironic:
 #    puppet_config_name: ironic
 #    hiera: ""
@@ -68,7 +67,6 @@ config_locations:
 #    section_name: database
 #    parameter_name: connection
 #    containers:
-#      -
 #
 #  ironic_inspector:
 #    puppet_config_name: ironic_inspector

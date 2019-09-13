@@ -1,6 +1,6 @@
 - name: "{{ application_name }}: restore tripleo URL into service conf file"
   ini_file:
-    path: "{{ config_data.contorller_config_file }}"
+    path: "{{ config_data.controller_config_file }}"
     section: "{{ config_data.section_name }}"
     option: "{{ config_data.parameter_name }}"
     value: "{{ config_data.tripleo_db_url }}"

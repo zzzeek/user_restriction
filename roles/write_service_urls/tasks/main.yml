@@ -7,5 +7,5 @@
     application_name: "{{ write_service_item.key }}"
     config_data: "{{ write_service_item.value }}"
   with_dict: "{{ config_locations }}"
-  when: "{{ write_apc_item.value.present | bool }}"
+  when: write_service_item.value.present | bool
 

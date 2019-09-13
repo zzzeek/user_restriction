@@ -2,6 +2,7 @@
 # receives variables:
 #    application_name
 #    puppet_config_name
+#    hiera
 #    config: config file path relative to a server or container
 #    section_name: "{{ item.section_name }}"
 #    parameter_name: "{{ item.parameter_name }}"
@@ -19,47 +20,39 @@
 # docker exec -it  galera-bundle-docker-0 mysql -u root --password="tbebgne63M"
 #
 
-- name: "{{ application_name }}: set puppet-generated file location"
-  set_fact:
-      config_file: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}{{ config }}"
-  when: puppet_config_name is defined
-
-- name: "{{ application_name }}: set non-puppet-generated file location"
-  set_fact:
-      config_file: "{{ config }}"
-  when: puppet_config_name is not defined
-
 - name: "{{ application_name }}: set location for account_per_controller.cnf"
   set_fact:
       account_per_controller: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}/etc/my.cnf.d/account_per_controller.cnf"
 
-- name: "{{ application_name }}: read current SQLAlchemy URL for section"
-  shell: |
-      crudini --get {{ config_file }}  {{ section_name}}  {{ parameter_name }}
-  register: command_output
-
-- name: "{{ application_name }}: get URL"
+- name: "{{ application_name }}: determine a script runner docker image"
   set_fact:
-    existing_url: "{{ command_output.stdout }}"
+    container_image: "{{ command_output.stdout_lines[0] }}"
+    script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}' {{ command_output.stdout_lines[0] }}"
+
+
+- name: "{{ application_name }}: read tripleo configured database URL from hiera"
+  shell: |
+    URL=`hiera -c /etc/puppet/hiera.yaml "{{ hiera }}"`
+    if [[ "${URL}" == "nil" ]]; then
+      exit -1
+    else
+      echo "${URL}"
+    fi
+  register: existing_url_command_output
 
 - name: "{{ application_name }}: find a container image we can use to run commands"
   shell: |
     {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ containers[0] }}
   register: command_output
 
-- name: "{{ application_name }}: set container image name fact"
-  set_fact:
-    container_image: "{{ command_output.stdout_lines[0] }}"
-    script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}' {{ command_output.stdout_lines[0] }}"
-
-- name: "{{ application_name }}: read current URL and split"
+- name: "{{ application_name }}: split components from tripleo-configured URL"
   shell: "{{ script_content }}"
   vars:
     script_content: |
       cat << EOF | {{ script_runner }} python
       from __future__ import print_function
       from sqlalchemy.engine import url
-      u = url.make_url('{{ existing_url }}')
+      u = url.make_url('{{ existing_url_command_output.stdout_lines[0] }}')
       print("\n".join(
           [u.get_backend_name() or '', u.username or '', u.host or '',
            u.database, u.query.get("read_default_group", '')]
@@ -88,12 +81,12 @@
 - name: "{{ application_name }}: create new password if not exists"
   shell: "{{ mysql_cli }} 'SELECT sha2(rand(), 256)'"
   register: mysql_password_generate_output
-#  when: mysql_password_file_output.rc != 0
+  when: mysql_password_file_output.rc != 0
 
 - name: "{{ application_name }}: register password fact from generated"
   set_fact:
     mysql_generated_password: "{{ mysql_password_generate_output.stdout_lines[0] }}"
-#  when: mysql_password_file_output.rc != 0
+  when: mysql_password_file_output.rc != 0
 
 - name: "{{ application_name }}: determine new user name, derived from controller hostname"
   shell: |

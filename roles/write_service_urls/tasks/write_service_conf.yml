@@ -1,0 +1,52 @@
+- name: "{{ application_name }}: set location for account_per_controller.cnf"
+  set_fact:
+      account_per_controller: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}/etc/my.cnf.d/account_per_controller.cnf"
+
+- name: "{{ application_name }}: determine a script runner docker image"
+  set_fact:
+    container_image: "{{ command_output.stdout_lines[0] }}"
+    script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}' {{ command_output.stdout_lines[0] }}"
+
+- name: "{{ application_name }}: set puppet-generated file location"
+  set_fact:
+      config_file: "{{ openstack_controller_puppet_generated }}/{{ puppet_config_name }}{{ config }}"
+  when: puppet_config_name is defined
+
+- name: "{{ application_name }}: set non-puppet-generated file location"
+  set_fact:
+      config_file: "{{ config }}"
+  when: puppet_config_name is not defined
+
+- name: "{{ application_name }}: read tripleo configured database URL from hiera"
+  shell: |
+    URL=`hiera -c /etc/puppet/hiera.yaml "{{ hiera }}"`
+    if [[ "${URL}" == "nil" ]]; then
+      exit -1
+    else
+      echo "${URL}"
+    fi
+  register: existing_url_command_output
+
+- name: "{{ application_name }}: generate new URL"
+  shell: "{{ script_content }}"
+  vars:
+    script_content: |
+      cat << EOF | {{ script_runner }} python
+      from __future__ import print_function
+      from sqlalchemy.engine import url
+      u = url.make_url('{{ existing_url_command_output.stdout_lines[0] }}')
+      u.username=None
+      u.password=None
+      u.host=None
+      u.query.update(read_default_file="{{ account_per_controller }}", read_default_group="{{ application_name }}")
+      print(u)
+      EOF`
+  register: apc_url_command_output
+
+- name: "{{ application_name }}: write URL into service conf file"
+  shell: "{{ script_content }}"
+  vars:
+    script_content: |
+      cat << EOF | {{ script_runner }} bash
+          crudini --set {{ config_file }} {{ section_name }} {{ parameter_name }} {{ apc_url_command_output.stdout_lines[0] }}
+      EOF

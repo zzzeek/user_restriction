@@ -17,3 +17,18 @@
     container_cli: "{{ container_command_output.stdout_lines[0] }}"
     local_ip_address: "{{ local_ipcommand_output.stdout }}"
     local_mysql_port: 3307
+
+- name: get MySQL root password from hiera
+  shell: /bin/hiera -c /etc/puppet/hiera.yaml "mysql::server::root_password"
+  register: hiera_root_output
+
+- name: get local galera container name
+  shell: |
+    {{ container_cli }} ps --format \{\{'.Names'\}\} --filter name=galera
+  register: galera_container_output
+
+- name: set local galera container name, mysql command
+  set_fact:
+    galera_container: "{{ galera_container_output.stdout_lines[0] }}"
+    mysql_root_password: "{{ hiera_root_output.stdout_lines[0] }}"
+    mysql_cli: "{{ container_cli }} exec -i {{ galera_container_output.stdout_lines[0] }} mysql -u root --password={{ hiera_root_output.stdout_lines[0] }} -Ns -e"

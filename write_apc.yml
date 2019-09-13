@@ -1,0 +1,14 @@
+- name: run install
+  gather_facts: false
+  hosts: controllers
+  become: yes
+  become_user: root
+  roles:
+    - { role: setup_facts, tags: ['always']}
+    - { role: update_haproxy, tags: ['update-haproxy']}
+    - { role: write_apc_conf, tags: ['write-apc-conf']}
+    - { role: write_service_urls, tags: ['write-service-urls']}
+    - { role: update_nova_cells, tags: ['update-nova-cells']}
+    - { role: restart_containers, tags: ['restart-containers']}
+
+

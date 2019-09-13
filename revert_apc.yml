@@ -5,9 +5,7 @@
   become_user: root
   roles:
     - { role: setup_facts, tags: ['always']}
-    - { role: update_haproxy, tags: ['update-haproxy']}
-    - { role: update_conf, tags: ['update-conf']}
-    - { role: update_nova_cells, tags: ['update-nova-cells']}
+    - { role: revert_service_urls, tags: ['revert-service-urls']}
     - { role: restart_containers, tags: ['restart-containers']}
 
 

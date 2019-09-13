@@ -9,9 +9,3 @@
     line: "  bind {{ local_ip_address }}:3307"
     insertafter: "listen mysql"
 
-
-- name: fix old line lacking leading spaces
-  lineinfile:
-    path: "{{ openstack_controller_puppet_generated }}/haproxy/etc/haproxy/haproxy.cfg"
-    line: "bind {{ local_ip_address }}:3307"
-    state: absent

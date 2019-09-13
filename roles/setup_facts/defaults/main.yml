@@ -1,2 +1,60 @@
 openstack_controller_puppet_generated: /var/lib/config-data/puppet-generated
 
+
+config_locations:
+  - name: keystone
+    puppet_config_name: keystone
+    hiera: "keystone::database_connection"
+    config: /etc/keystone/keystone.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - keystone
+      - keystone_cron
+
+  - name: nova
+    puppet_config_name: nova
+    hiera: "nova::database_connection"
+    config: /etc/nova/nova.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - nova_conductor
+      - nova_metadata
+
+  - name: nova_api
+    puppet_config_name: nova
+    hiera: "nova::api_database_connection"
+    config: /etc/nova/nova.conf
+    section_name: api_database
+    parameter_name: connection
+    containers:
+      - nova_api
+
+  - name: nova_placement
+    puppet_config_name: nova
+    hiera: "nova::placement_database_connection"
+    config: /etc/nova/nova.conf
+    section_name: placement_database
+    parameter_name: connection
+    containers:
+      - nova_placement
+
+  - name: glance
+    puppet_config_name: glance_api
+    hiera: "glance::api::database_connection"
+    config: /etc/glance/glance-api.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - glance_api
+
+# etc: - do a grep for tripleo.cnf to find other services?
+#  ./nova_placement/etc/my.cnf.d/tripleo.cnf
+#./heat/etc/my.cnf.d/tripleo.cnf
+##/nova/etc/my.cnf.d/tripleo.cnf
+#./glance_api/etc/my.cnf.d/tripleo.cnf
+#./keystone/etc/my.cnf.d/tripleo.cnf
+#./cinder/etc/my.cnf.d/tripleo.cnf
+#./neutron/etc/my.cnf.d/tripleo.cnf
+

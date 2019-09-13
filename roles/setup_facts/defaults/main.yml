@@ -140,9 +140,10 @@ config_locations:
     containers:
       - nova_api
 
+
     # note that nova_placement in OSP13 is placement in OSP15
   nova_placement:
-    puppet_config_name: nova
+    puppet_config_name: nova_placement
     hiera: "nova::placement_database_connection"
     config: /etc/nova/nova.conf
     section_name: placement_database

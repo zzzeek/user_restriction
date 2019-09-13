@@ -6,18 +6,15 @@
       containers: "{{ config_data.containers }}"
       database_name: "{{ config_data.tripleo_db_name }}"
 
-- name: "{{ application_name }}: find a container image we can use to run commands"
-  shell: |
-    {{ container_cli }} ps --format \{\{'.Image'\}\} --filter name={{ containers[0] }}
-  register: command_output
-
 - name: "{{ application_name }}: read database info from account_per_controller.conf"
   shell: "{{ script_content }}"
   vars:
     script_content: |
+      cat << EOF | {{ script_runner }} bash
       crudini --get {{ controller_account_per_controller }} {{ application_name }} user
       crudini --get {{ controller_account_per_controller }} {{ application_name }} password
       crudini --get {{ controller_account_per_controller }} {{ application_name }} bind_address
+      EOF
   register: db_config_command_output
 
 - name: "{{ application_name }}: set existing database URL components"

@@ -4,16 +4,18 @@
       tripleo_db_password: "{{ config_data.tripleo_db_password }}"
       database_name: "{{ config_data.tripleo_db_name }}"
 
-- block:
-    - name: "{{ application_name }}: enable grants"
-      shell: |
-        {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ tripleo_db_user }}'@'%' IDENTIFIED BY PASSWORD '{{ tripleo_db_password }}';"
-        {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ tripleo_db_user }}'@'%';"
+- name: "{{ application_name }}: enable grants"
+  shell: |
+    {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ tripleo_db_user }}'@'%' IDENTIFIED BY PASSWORD '{{ tripleo_db_password }}';"
+    {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ tripleo_db_user }}'@'%';"
   when: enable_ooo_grants
+  run_once: true    # tripleo_db_user is one per all hosts
 
-- block:
-    - name: "{{ application_name }}: disable grants"
-      shell: |
-        {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ database_name }}.* FROM '{{ tripleo_db_user }}'@'%';"
+- name: "{{ application_name }}: disable grants"
+  shell: |
+    {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ database_name }}.* FROM '{{ tripleo_db_user }}'@'%';"
+  ignore_errors: true
   when: not enable_ooo_grants
+  run_once: true    # tripleo_db_user is one per all hosts
+
 

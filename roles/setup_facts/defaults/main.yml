@@ -19,13 +19,16 @@ config_locations:
 #    parameter_name: connection
 #    containers:
 #
-#  cinder:
-#    puppet_config_name: cinder
-#    hiera: ""
-#    config:
-#    section_name: database
-#    parameter_name: connection
-#    containers:
+  cinder:
+    puppet_config_name: cinder
+    hiera: "cinder::database_connection"
+    config: /etc/cinder/cinder.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - cinder_api
+      - cinder_api_cron
+      - cinder_scheduler
 #
 #  ec2-api:
 #    puppet_config_name: ec2_api
@@ -52,13 +55,30 @@ config_locations:
     containers:
       - glance_api
 
-#  heat:
-#    puppet_config_name: heat_api
-#    hiera: "heat::database_connection"
-#    config:
-#    section_name: database
-#    parameter_name: connection
-#    containers:
+  heat:
+    puppet_config_name: heat
+    hiera: "heat::database_connection"
+    config: /etc/heat/heat.conf
+    section_name: database
+    parameter_name: connection
+    extra_configs:
+      - puppet_config_name: heat_api
+        config: /etc/heat/heat.conf
+        section_name: database
+        parameter_name: connection
+
+      - puppet_config_name: heat_api_cfn
+        config: /etc/heat/heat.conf
+        section_name: database
+        parameter_name: connection
+
+    containers:
+      - heat_api
+      - heat_api_cfn
+      - heat_api_cron
+      - heat_engine
+      - heat_api
+
 #
 #  ironic:
 #    puppet_config_name: ironic
@@ -130,6 +150,7 @@ config_locations:
     containers:
       - nova_conductor
       - nova_metadata
+      - nova_scheduler
 
   nova_api:
     puppet_config_name: nova
@@ -139,6 +160,7 @@ config_locations:
     parameter_name: connection
     containers:
       - nova_api
+      - nova_api_cron
 
 # also:
 # nova::cell0_database_connection
@@ -163,14 +185,15 @@ config_locations:
 #    containers:
 #
 #    # OSP15 and above
-#  placement:
-#    puppet_config_name: placement
-#    hiera: ""
-#    config:
-#    section_name: database
-#    parameter_name: connection
-#    containers:
-#      -
+  placement:
+    puppet_config_name: placement
+    hiera: "placement::db::database_connection"
+    config: /etc/placement/placement.conf
+    section_name: placement_database
+    parameter_name: connection
+    containers:
+      - placement
+
 #  sahara:
 #    puppet_config_name: sahara
 #    hiera: ""

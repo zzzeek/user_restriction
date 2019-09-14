@@ -5,3 +5,11 @@
     option: "{{ config_data.parameter_name }}"
     value: "{{ config_data.tripleo_db_url }}"
 
+
+- name: "{{ application_name }}: restore tripleo URL into service conf file for extra configs"
+  ini_file:
+    path: "{{ openstack_controller_puppet_generated }}/{{ item.puppet_config_name }}{{ item.config }}"
+    section: "{{ item.section_name }}"
+    option: "{{ item.parameter_name }}"
+    value: "{{ config_data.tripleo_db_url }}"
+  with_items: "{{ config_data.extra_configs|default([]) }}"

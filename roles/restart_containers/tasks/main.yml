@@ -9,5 +9,5 @@
       fi
     done
   with_dict: "{{ config_locations }}"
-  when: "{{ item.value.present | bool }}"
+  when: item.value.present | bool
 

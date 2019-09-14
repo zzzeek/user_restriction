@@ -42,15 +42,16 @@
 - name: update URLs in database
   shell: |
       {{ mysql_cli }} "UPDATE nova_api.cell_mappings SET database_connection='{{ item.new_url }}' WHERE uuid='{{ item.uuid }}'"
-  with_items: "{{ nova_cell_new_urls }}"
+  with_items: "{{ nova_cell_new_urls|default([]) }}"
 
 - name: "{{ application_name }}: create grants for apc user"
   shell: |
     {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ item.database }}.* TO '{{ apc_db_user }}'@'{{ apc_db_bind_address }}';"
-  with_items: "{{ nova_cell_new_urls }}"
+  with_items: "{{ nova_cell_new_urls|default([]) }}"
 
 - name: "{{ application_name }}: disable grants for ooo user"
   shell: |
     {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ item.database }}.* FROM '{{ tripleo_db_user }}'@'%';"
   ignore_errors: yes
-  with_items: "{{ nova_cell_new_urls }}"
+  with_items: "{{ nova_cell_new_urls|default([]) }}"
+  run_once: true    # triple_db_user is one per all hosts

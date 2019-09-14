@@ -16,7 +16,7 @@
     # this username so there is the chance this is not a full "revert", however
     # current OSP10/13/15 behavior assumes this use.
     read_default_group: "{{ config_locations.nova.tripleo_db_read_default_group }}"
-    username: "{{ config_locations.nova.tripleo_db_username }}"
+    username: "{{ config_locations.nova.tripleo_db_user }}"
     password: "{{ config_locations.nova.tripleo_db_password }}"
     host: "{{ config_locations.nova.tripleo_db_host }}"
 
@@ -30,14 +30,17 @@
       u.host = "{{ host }}"
       u.port = None
       u.query.update(read_default_file="/etc/my.cnf.d/tripleo.cnf", read_default_group="{{ read_default_group }}")
-      print("{{ item.uuid }} %s %s" % (u.database, u, ))
+      print("{{ item.uuid }}")
+      print(u.database)
+      print(u)
       EOF
   register: nova_cells_revert_urls_output
-  with_items: "{{ nova_cell_revert_urls }}"
+  with_items: "{{ nova_cell_revert_urls|default([]) }}"
 
 - name: process url output
   set_fact:
-    nova_cell_restore_urls: "{{ nova_cell_restore_urls|default([]) + [{'uuid': item.split()[0], 'database': item.split()[1], 'restore_url': item.split()[2]}]}}"
+    nova_cell_restore_urls: "{{ nova_cell_restore_urls|default([]) + [{'uuid': item.stdout_lines[0], 'database': item.stdout_lines[1], 'restore_url': item.stdout_lines[2]}]}}"
+  with_items: "{{ nova_cells_revert_urls_output.results }}"
 
 - name: update URLs in database
   shell: |
@@ -48,8 +51,9 @@
   shell: |
     {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ item.database }}.* FROM '{{ apc_db_user }}'@'{{ apc_db_bind_address }}';"
   with_items: "{{ nova_cell_restore_urls }}"
+  ignore_errors: yes
 
 - name: "{{ application_name }}: enable grants for ooo user"
   shell: |
     {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ item.database }}.* TO '{{ tripleo_db_user }}'@'%';"
-  with_items: "{{ nova_cell_new_urls }}"
+  with_items: "{{ nova_cell_restore_urls }}"

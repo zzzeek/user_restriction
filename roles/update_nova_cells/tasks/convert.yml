@@ -23,14 +23,21 @@
       u.host = None
       u.port = None
       u.query.update(read_default_file="{{ container_account_per_controller }}", read_default_group="{{ use_apc_section }}")
-      print("{{ item.uuid }} %s %s" % (u.database, u, ))
+      print("{{ item.uuid }}")
+      print(u.database)
+      print(u)
       EOF
   register: nova_cells_apc_urls_output
-  with_items: "{{ nova_cell_convert_urls }}"
+  with_items: "{{ nova_cell_convert_urls|default([]) }}"
+
+- name: show me the output
+  debug:
+    msg: "{{ nova_cells_apc_urls_output }}"
 
 - name: process url output
   set_fact:
-    nova_cell_new_urls: "{{ nova_cell_new_urls|default([]) + [{'uuid': item.split()[0], 'database': item.split()[1], 'new_url': item.split()[2]}]}}"
+    nova_cell_new_urls: "{{ nova_cell_new_urls|default([]) + [{'uuid': item.stdout_lines[0], 'database': item.stdout_lines[1], 'new_url': item.stdout_lines[2]}]}}"
+  with_items: "{{ nova_cells_apc_urls_output.results }}"
 
 - name: update URLs in database
   shell: |
@@ -45,4 +52,5 @@
 - name: "{{ application_name }}: disable grants for ooo user"
   shell: |
     {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ item.database }}.* FROM '{{ tripleo_db_user }}'@'%';"
+  ignore_errors: yes
   with_items: "{{ nova_cell_new_urls }}"

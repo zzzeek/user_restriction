@@ -40,6 +40,7 @@
   vars:
     application_name: "{{ gather_conf_item.key }}"
     config_data: "{{ gather_conf_item.value }}"
+    include_only_confs: "{{ only_confs|default('') }}"
   with_dict: "{{ config_locations }}"
 
 - name: "print config data"
@@ -48,5 +49,5 @@
   loop_control:
     loop_var: gather_conf_item
   with_dict: "{{ config_locations }}"
-  when: "{{ gather_conf_item.value.present | bool }}"
+  when: gather_conf_item.value.present | bool
 

@@ -29,3 +29,4 @@
     section: "{{ config_data.section_name }}"
     option: "{{ config_data.parameter_name }}"
     value: "{{ apc_url_command_output.stdout_lines[0] }}"
+

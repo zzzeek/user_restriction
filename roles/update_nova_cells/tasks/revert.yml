@@ -1,0 +1,55 @@
+- name: read uuid/database connections to revert from apc
+  shell: |
+      {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%account_per_controller.cnf%';"
+  register: nova_cell_mappings_revert_output
+
+- name: process cell mapping output
+  set_fact:
+    nova_cell_revert_urls: "{{ nova_cell_revert_urls|default([]) + [{'uuid': item.split()[0], 'url': item.split()[1]}]}}"
+  with_items: "{{ nova_cell_mappings_revert_output.stdout_lines }}"
+
+- name: "{{ application_name }}: restore URL based on 'nova' username from tripleo"
+  shell: "{{ script_content }}"
+  vars:
+    # note we assume for revert, we are using the nova username/password
+    # for all URLs.  even if this is not the case, it will still work to use
+    # this username so there is the chance this is not a full "revert", however
+    # current OSP10/13/15 behavior assumes this use.
+    read_default_group: "{{ config_locations.nova.tripleo_db_read_default_group }}"
+    username: "{{ config_locations.nova.tripleo_db_username }}"
+    password: "{{ config_locations.nova.tripleo_db_password }}"
+    host: "{{ config_locations.nova.tripleo_db_host }}"
+
+    script_content: |
+      cat << EOF | {{ script_runner }} python
+      from __future__ import print_function
+      from sqlalchemy.engine import url
+      u = url.make_url("{{ item.url }}")
+      u.username = "{{ username }}"
+      u.password = "{{ password }}"
+      u.host = "{{ host }}"
+      u.port = None
+      u.query.update(read_default_file="/etc/my.cnf.d/tripleo.cnf", read_default_group="{{ read_default_group }}")
+      print("{{ item.uuid }} %s %s" % (u.database, u, ))
+      EOF
+  register: nova_cells_revert_urls_output
+  with_items: "{{ nova_cell_revert_urls }}"
+
+- name: process url output
+  set_fact:
+    nova_cell_restore_urls: "{{ nova_cell_restore_urls|default([]) + [{'uuid': item.split()[0], 'database': item.split()[1], 'restore_url': item.split()[2]}]}}"
+
+- name: update URLs in database
+  shell: |
+      {{ mysql_cli }} "UPDATE nova_api.cell_mappings SET database_connection='{{ item.restore_url }}' WHERE uuid='{{ item.uuid }}'"
+  with_items: "{{ nova_cell_restore_urls }}"
+
+- name: "{{ application_name }}: revoke grants for apc user"
+  shell: |
+    {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ item.database }}.* FROM '{{ apc_db_user }}'@'{{ apc_db_bind_address }}';"
+  with_items: "{{ nova_cell_restore_urls }}"
+
+- name: "{{ application_name }}: enable grants for ooo user"
+  shell: |
+    {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ item.database }}.* TO '{{ tripleo_db_user }}'@'%';"
+  with_items: "{{ nova_cell_new_urls }}"

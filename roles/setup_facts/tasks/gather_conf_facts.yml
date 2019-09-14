@@ -6,7 +6,7 @@
 - name: "{{ application_name }}: not present on controllers"
   set_fact:
     config_locations: "{{ config_locations | combine( {application_name: {'present': false} | combine(config_locations[application_name])}) }}"
-  when: not puppet_config_stat.stat.exists
+  when: not puppet_config_stat.stat.exists or (include_only_confs | length > 0 and application_name not in include_only_confs)
 
 - block:
     - name: "{{ application_name }}: set controller location for account_per_controller.cnf"
@@ -66,6 +66,7 @@
           - tripleo_db_host: "{{ ooo_db_host }}"
           - tripleo_db_name: "{{ ooo_db_name }}"
           - tripleo_db_password: "{{ ooo_db_password }}"
+          - tripleo_db_read_default_group: "{{ ooo_db_read_default_group }}"
           - container_account_per_controller: "{{ container_account_per_controller }}"
           - controller_account_per_controller: "{{ controller_account_per_controller }}"
 
@@ -73,4 +74,4 @@
       set_fact:
         config_locations: "{{ config_locations | combine( {application_name: new_record | combine(config_locations[application_name])}) }}"
 
-  when: puppet_config_stat.stat.exists
+  when: puppet_config_stat.stat.exists and (include_only_confs | length == 0 or application_name in include_only_confs)

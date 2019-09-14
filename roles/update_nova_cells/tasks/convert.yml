@@ -1,0 +1,48 @@
+- name: read uuid/database connections to convert to apc
+  shell: |
+      {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%{{ seek_host }}%';"
+  vars:
+    - seek_host: "{{ config_locations.nova.tripleo_db_host }}"
+  register: nova_cell_mappings_convert_output
+
+- name: process cell mapping output
+  set_fact:
+    nova_cell_convert_urls: "{{ nova_cell_convert_urls|default([]) + [{'uuid': item.split()[0], 'url': item.split()[1]}]}}"
+  with_items: "{{ nova_cell_mappings_convert_output.stdout_lines }}"
+
+- name: "{{ application_name }}: generate new URL from tripleo_db_url"
+  shell: "{{ script_content }}"
+  vars:
+    script_content: |
+      cat << EOF | {{ script_runner }} python
+      from __future__ import print_function
+      from sqlalchemy.engine import url
+      u = url.make_url("{{ item.url }}")
+      u.username = None
+      u.password = None
+      u.host = None
+      u.port = None
+      u.query.update(read_default_file="{{ container_account_per_controller }}", read_default_group="{{ use_apc_section }}")
+      print("{{ item.uuid }} %s %s" % (u.database, u, ))
+      EOF
+  register: nova_cells_apc_urls_output
+  with_items: "{{ nova_cell_convert_urls }}"
+
+- name: process url output
+  set_fact:
+    nova_cell_new_urls: "{{ nova_cell_new_urls|default([]) + [{'uuid': item.split()[0], 'database': item.split()[1], 'new_url': item.split()[2]}]}}"
+
+- name: update URLs in database
+  shell: |
+      {{ mysql_cli }} "UPDATE nova_api.cell_mappings SET database_connection='{{ item.new_url }}' WHERE uuid='{{ item.uuid }}'"
+  with_items: "{{ nova_cell_new_urls }}"
+
+- name: "{{ application_name }}: create grants for apc user"
+  shell: |
+    {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ item.database }}.* TO '{{ apc_db_user }}'@'{{ apc_db_bind_address }}';"
+  with_items: "{{ nova_cell_new_urls }}"
+
+- name: "{{ application_name }}: disable grants for ooo user"
+  shell: |
+    {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ item.database }}.* FROM '{{ tripleo_db_user }}'@'%';"
+  with_items: "{{ nova_cell_new_urls }}"

@@ -1,0 +1,34 @@
+- name: setup to use "nova" as the username
+  set_fact:
+    application_name: nova_cells
+    container_account_per_controller: "{{ config_locations.nova.container_account_per_controller }}"
+    script_runner: "{{ config_locations.nova.script_runner }}"
+    use_apc_section: nova
+    tripleo_db_user: "{{ config_locations.nova.tripleo_db_user }}"
+
+- name: "{{ application_name }}: read apc nova database info from account_per_controller.conf"
+  shell: "{{ script_content }}"
+  vars:
+    script_content: |
+      cat << EOF | {{ script_runner }} bash
+      crudini --get {{ controller_account_per_controller }} {{ use_apc_section }} user
+      crudini --get {{ controller_account_per_controller }} {{ use_apc_section }} password
+      crudini --get {{ controller_account_per_controller }} {{ use_apc_section }} bind_address
+      EOF
+  register: db_config_command_output
+
+- name: "{{ application_name }}: set apc database URL components"
+  set_fact:
+    apc_db_user: "{{ db_config_command_output.stdout_lines[0] }}"
+    apc_db_password: "{{ db_config_command_output.stdout_lines[1] }}"
+    apc_db_bind_address: "{{ db_config_command_output.stdout_lines[2] }}"
+
+- name: run nova_cells convert tasks
+  include_tasks: convert.yml
+  when: convert_nova_cells is defined and convert_nova_cells | bool
+
+- name: run nova_cells revert tasks
+  include_tasks: revert.yml
+  when: revert_nova_cells is defined and revert_nova_cells | bool
+
+

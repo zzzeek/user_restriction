@@ -9,7 +9,7 @@
     - { role: write_apc_conf, tags: ['write-apc-conf']}
     - { role: write_service_urls, tags: ['write-service-urls']}
     - { role: create_mysql_grants, tags: ['create-mysql-grants']}
-    - { role: update_nova_cells, tags: ['update-nova-cells']}
+    - { role: update_nova_cells, tags: ['update-nova-cells'], vars: {convert_nova_cells: true}}
     - { role: restart_containers, tags: ['restart-containers']}
     - { role: alter_tripleo_mysql_grants, tags: ['drop-tripleo-mysql-grants'], vars: {enable_ooo_grants: false}}
 

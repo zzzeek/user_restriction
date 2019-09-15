@@ -29,6 +29,9 @@
     section: "{{ config_data.section_name }}"
     option: "{{ config_data.parameter_name }}"
     value: "{{ apc_url_command_output.stdout_lines[0] }}"
+    seuser: "{{ etc_seuser }}"
+    serole: "{{ etc_serole }}"
+    setype: "{{ etc_setype }}"
 
 - name: "{{ application_name }}: write URL into service conf file for extra configs"
   ini_file:
@@ -36,4 +39,7 @@
     section: "{{ item.section_name }}"
     option: "{{ item.parameter_name }}"
     value: "{{ apc_url_command_output.stdout_lines[0] }}"
+    seuser: "{{ etc_seuser }}"
+    serole: "{{ etc_serole }}"
+    setype: "{{ etc_setype }}"
   with_items: "{{ config_data.extra_configs|default([]) }}"

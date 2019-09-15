@@ -22,7 +22,7 @@
     - name: "{{ application_name }}: determine a script runner docker image"
       set_fact:
         container_image: "{{ container_command_output.stdout_lines[0] }}"
-        script_runner: "{{ container_cli }} run -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}' {{ container_command_output.stdout_lines[0] }}"
+        script_runner: "{{ container_cli }} run --network=host -i -u root -v '{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}:{{ openstack_controller_puppet_generated }}/{{ config_data.puppet_config_name }}' {{ container_command_output.stdout_lines[0] }}"
 
     - name: "{{ application_name }}: read tripleo-configured URL from hiera and split"
       shell: "{{ script_content }}"

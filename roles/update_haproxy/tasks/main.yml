@@ -8,7 +8,11 @@
     path: "{{ openstack_controller_puppet_generated }}/haproxy/etc/haproxy/haproxy.cfg"
     line: "  bind {{ local_ip_address }}:3307"
     insertafter: "listen mysql"
+    seuser: "{{ etc_seuser }}"
+    serole: "{{ etc_serole }}"
+    setype: "{{ etc_setype }}"
 
 - name: restart haproxy
   shell: |
     {{ container_cli }} restart {{ command_output.stdout_lines[0] }}
+  when: command_output.stdout_lines | length > 0

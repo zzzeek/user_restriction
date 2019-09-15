@@ -1,5 +1,13 @@
 openstack_controller_puppet_generated: /var/lib/config-data/puppet-generated
 
+# selinux roles for files in etc
+# not sure why these can't default correctly
+# these only matter in osp15 / podman
+# also not sure if i should get these from somehwere
+etc_seuser: "unconfined_u"
+etc_serole: "object_r"
+etc_setype: "container_file_t"
+
 
 config_locations:
   aodh:

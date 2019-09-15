@@ -2,6 +2,7 @@
   set_fact:
     application_name: nova_cells
     container_account_per_controller: "{{ config_locations.nova.container_account_per_controller }}"
+    controller_account_per_controller: "{{ config_locations.nova.controller_account_per_controller }}"
     script_runner: "{{ config_locations.nova.script_runner }}"
     use_apc_section: nova
     tripleo_db_user: "{{ config_locations.nova.tripleo_db_user }}"

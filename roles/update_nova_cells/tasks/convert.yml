@@ -1,4 +1,12 @@
 - name: read uuid/database connections to convert to apc
+  # TODO: osp15 is using {scheme}://{username}:{password}@{hostname}/nova?{query}
+  # {scheme}://{username}:{password}@{hostname}/nova_cell0?{query}
+  # if username/pw/host is blank, SQLAlchemy URL returns blank string, not None,
+  # however pymysql read_default_file will supercede these values also based
+  # on https://github.com/PyMySQL/PyMySQL/blob/master/pymysql/connections.py#L224
+  # need to determine if we want to leave these URLs as is, however, we still need to
+  # create the grants for nova0/1/2 to get into nova_cell0, so we still should
+  # iterate through here and get all the database names separately
   shell: |
       {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%{{ seek_host }}%';"
   vars:

@@ -43,6 +43,9 @@
     section: "{{ application_name }}"
     option: "{{ item.parameter_name }}"
     value: "{{ item.value }}"
+    seuser: "{{ etc_seuser }}"
+    serole: "{{ etc_serole }}"
+    setype: "{{ etc_setype }}"
   with_items:
     - {parameter_name: "user", value: "{{ db_apc_username }}"}
     - {parameter_name: "password", value: "{{ db_apc_password }}"}

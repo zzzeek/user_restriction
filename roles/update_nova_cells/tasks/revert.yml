@@ -1,6 +1,6 @@
 - name: read uuid/database connections to revert from apc
   shell: |
-      {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%account_per_controller.cnf%';"
+      {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%account_per_controller.cnf%' or database_connection like '%{hostname}%;"
   register: nova_cell_mappings_revert_output
 
 - name: process cell mapping output
@@ -24,14 +24,25 @@
       cat << EOF | {{ script_runner }} python
       from __future__ import print_function
       from sqlalchemy.engine import url
-      u = url.make_url("{{ item.url }}")
-      u.username = "{{ username }}"
-      u.password = "{{ password }}"
-      u.host = "{{ host }}"
-      u.port = None
-      u.query.update(read_default_file="/etc/my.cnf.d/tripleo.cnf", read_default_group="{{ read_default_group }}")
+      import re
+      _url = "{{ item.url }}"
+
+      if "{hostname}" in _url:
+          # look for nova tokenized URL
+          components = re.match(r'.*@{hostname}/(.+?)[\?$]', _url)
+          assert components, "Could not parse url: %s" % _url
+          u = _url
+          database = components.group(1)
+      else:
+          u = url.make_url("{{ item.url }}")
+          u.username = "{{ username }}"
+          u.password = "{{ password }}"
+          u.host = "{{ host }}"
+          u.port = None
+          database = u.database
+          u.query.update(read_default_file="/etc/my.cnf.d/tripleo.cnf", read_default_group="{{ read_default_group }}")
       print("{{ item.uuid }}")
-      print(u.database)
+      print(database)
       print(u)
       EOF
   register: nova_cells_revert_urls_output

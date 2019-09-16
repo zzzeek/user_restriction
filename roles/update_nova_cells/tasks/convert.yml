@@ -1,14 +1,13 @@
 - name: read uuid/database connections to convert to apc
-  # TODO: osp15 is using {scheme}://{username}:{password}@{hostname}/nova?{query}
+  # osp15 is using {scheme}://{username}:{password}@{hostname}/nova?{query}
   # {scheme}://{username}:{password}@{hostname}/nova_cell0?{query}
   # if username/pw/host is blank, SQLAlchemy URL returns blank string, not None,
   # however pymysql read_default_file will supercede these values also based
   # on https://github.com/PyMySQL/PyMySQL/blob/master/pymysql/connections.py#L224
-  # need to determine if we want to leave these URLs as is, however, we still need to
-  # create the grants for nova0/1/2 to get into nova_cell0, so we still should
-  # iterate through here and get all the database names separately
+  # we will leave these URLs as is, however, we still need to
+  # create the grants for nova0/1/2 to get into nova_cell0
   shell: |
-      {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%{{ seek_host }}%';"
+      {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%{{ seek_host }}%' or database_connection like '%{hostname}%';"
   vars:
     - seek_host: "{{ config_locations.nova.tripleo_db_host }}"
   register: nova_cell_mappings_convert_output
@@ -25,14 +24,25 @@
       cat << EOF | {{ script_runner }} python
       from __future__ import print_function
       from sqlalchemy.engine import url
-      u = url.make_url("{{ item.url }}")
-      u.username = None
-      u.password = None
-      u.host = None
-      u.port = None
-      u.query.update(read_default_file="{{ container_account_per_controller }}", read_default_group="{{ use_apc_section }}")
+      import re
+      _url = "{{ item.url }}"
+
+      if "{hostname}" in _url:
+          # look for nova tokenized URL
+          components = re.match(r'.*@{hostname}/(.+?)[\?$]', _url)
+          assert components, "Could not parse url: %s" % _url
+          u = _url
+          database = components.group(1)
+      else:
+          u = url.make_url(_url)
+          u.username = None
+          u.password = None
+          u.host = None
+          u.port = None
+          u.query.update(read_default_file="{{ container_account_per_controller }}", read_default_group="{{ use_apc_section }}")
+          database = u.database
       print("{{ item.uuid }}")
-      print(u.database)
+      print(database)
       print(u)
       EOF
   register: nova_cells_apc_urls_output

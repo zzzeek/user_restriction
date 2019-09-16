@@ -13,17 +13,9 @@ fi
 set -e
 set -x
 
-function dryrun {
-	${ANSIBLE_BIN} \
-        -vv -i hosts \
-    $1 $2 $3 $4 $5 $6 $7 $8 $9 \
-        write_apc.yml
-}
-
 function install {
 	${ANSIBLE_BIN} \
         -vv -i hosts \
-        --extra-vars "dryrun=false" \
     $1 $2 $3 $4 $5 $6 $7 $8 $9 \
         write_apc.yml
 }
@@ -31,14 +23,13 @@ function install {
 function revert {
     ${ANSIBLE_BIN} \
         -vv -i hosts \
-        --extra-vars "dryrun=false" \
     $1 $2 $3 $4 $5 $6 $7 $8 $9 \
         revert_apc.yml
 }
 
 
 main() {
-	INSTALL_CMDS="dryrun install revert"
+	INSTALL_CMDS="install revert"
 
     CMD="$1"
     shift
@@ -50,14 +41,11 @@ main() {
     if [[ "${CMD}" == *"help"* ]]; then
         set +x
         echo -e "\nusage: $0 <commands>\n"
-        echo -e "\n dryrun - do a dry run, showing what we're doing but don't change anything"
         echo -e "\n install - run the install for real"
         echo -e "\n revert - revert the per-controller configurations"
     fi
 
-    if [[ "${CMD}" == *"dryrun"* ]]; then
-        dryrun $@
-    elif [[ "${CMD}" == *"revert"* ]]; then
+    if [[ "${CMD}" == *"revert"* ]]; then
         revert $@
     elif [[ "${CMD}" == *"install"* ]]; then
         install $@

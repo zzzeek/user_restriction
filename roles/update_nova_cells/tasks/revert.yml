@@ -1,6 +1,6 @@
 - name: read uuid/database connections to revert from apc
   shell: |
-      {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%account_per_controller.cnf%' or database_connection like '%{hostname}%;"
+      {{ mysql_cli }} "SELECT uuid, database_connection FROM nova_api.cell_mappings WHERE database_connection like '%account_per_controller.cnf%' or database_connection like '%{scheme}%';"
   register: nova_cell_mappings_revert_output
 
 - name: process cell mapping output
@@ -27,12 +27,12 @@
       import re
       _url = "{{ item.url }}"
 
-      if "{hostname}" in _url:
+      if "{scheme}" in _url:
           # look for nova tokenized URL
-          components = re.match(r'.*@{hostname}/(.+?)[\?$]', _url)
+          components = re.match(r'.*/(.+?)[\?$]', _url)
           assert components, "Could not parse url: %s" % _url
-          u = _url
           database = components.group(1)
+          u = "{scheme}://{username}:{password}@{hostname}/%s?{query}" % database
       else:
           u = url.make_url("{{ item.url }}")
           u.username = "{{ username }}"

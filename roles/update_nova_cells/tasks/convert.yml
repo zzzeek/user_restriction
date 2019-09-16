@@ -3,7 +3,11 @@
   # {scheme}://{username}:{password}@{hostname}/nova_cell0?{query}
   # if username/pw/host is blank, SQLAlchemy URL returns blank string, not None,
   # however pymysql read_default_file will supercede these values also based
-  # on https://github.com/PyMySQL/PyMySQL/blob/master/pymysql/connections.py#L224
+  # on https://github.com/PyMySQL/PyMySQL/blob/master/pymysql/connections.py#L224.
+  # HOWEVER, nova's tokenizer is doing:
+  # mysql+pymysql://None:None@None/nova?read_default_file=/etc/my.cnf.d/account_per_controller.cnf&read_default_group=nova
+  # so we sort of have to hardcode
+
   # we will leave these URLs as is, however, we still need to
   # create the grants for nova0/1/2 to get into nova_cell0
   shell: |
@@ -31,8 +35,9 @@
           # look for nova tokenized URL
           components = re.match(r'.*@{hostname}/(.+?)[\?$]', _url)
           assert components, "Could not parse url: %s" % _url
-          u = _url
           database = components.group(1)
+          u = "{scheme}:///%s?read_default_file={{ container_account_per_controller }}&read_default_group={{ use_apc_section }}" % database
+
       else:
           u = url.make_url(_url)
           u.username = None

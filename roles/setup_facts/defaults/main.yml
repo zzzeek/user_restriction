@@ -37,6 +37,10 @@ config_locations:
       - cinder_api
       - cinder_api_cron
       - cinder_scheduler
+      - cinder_volume
+    # cinder-volume matches up to openstack-cinder-volume-podman-0 etc
+    container_expressions:
+      - cinder-volume
 #
 #  ec2-api:
 #    puppet_config_name: ec2_api
@@ -149,6 +153,7 @@ config_locations:
     parameter_name: connection
     containers:
       - neutron
+      - neutron_api
 
   neutron_plumgrid:
     puppet_config_name: neutron_plugin_plumgrid
@@ -169,6 +174,7 @@ config_locations:
       - nova_conductor
       - nova_metadata
       - nova_scheduler
+      - nova_consoleauth
 
   nova_api:
     puppet_config_name: nova
@@ -179,6 +185,12 @@ config_locations:
     containers:
       - nova_api
       - nova_api_cron
+    extra_configs:
+        # nova-api reads the "nova" URL from the file too
+      - puppet_config_name: nova
+        config: /etc/nova/nova.conf
+        section_name: database
+        parameter_name: connection
 
   # note that nova_placement in OSP13 is placement in OSP15
   nova_placement:

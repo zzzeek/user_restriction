@@ -46,13 +46,16 @@ config_locations:
 #    parameter_name: connection
 #    containers:
 #
-#  gnocchi:
-#    puppet_config_name: gnocchi
-#    hiera: ""
-#    config:
-#    section_name: database
-#    parameter_name: connection
-#    containers:
+  gnocchi:
+    puppet_config_name: gnocchi
+    hiera: "gnocchi::db::database_connection"
+    config: "/etc/gnocchi/gnocchi.conf"
+    section_name: indexer
+    parameter_name: url
+    containers:
+      - gnocchi_api
+      - gnocchi_metricd
+      - gnocchi_statsd
 
   glance:
     puppet_config_name: glance_api
@@ -87,24 +90,25 @@ config_locations:
       - heat_engine
       - heat_api
 
-#
-#  ironic:
-#    puppet_config_name: ironic
-#    hiera: ""
-#    config:
-#    section_name: database
-#    parameter_name: connection
-#    containers:
-#
-#  ironic_inspector:
-#    puppet_config_name: ironic_inspector
-#    hiera: "ironic::inspector::db::database_connection"
-#    config: /etc/ironic-inspector/inspector.conf
-#    section_name: database
-#    parameter_name: connection
-#    containers:
-#      - ironic_inspector
-#
+
+  ironic:
+    puppet_config_name: ironic
+    hiera: "ironic::db::database_connection"
+    config: /etc/ironic/ironic.conf
+    section_name: ironic_config
+    parameter_name: connection
+    containers:
+      - ironic_api
+
+  ironic_inspector:
+    puppet_config_name: ironic_inspector
+    hiera: "ironic::inspector::db::database_connection"
+    config: /etc/ironic-inspector/inspector.conf
+    section_name: ironic_inspector_config
+    parameter_name: connection
+    containers:
+      - ironic_inspector
+
   keystone:
     puppet_config_name: keystone
     hiera: "keystone::database_connection"
@@ -115,21 +119,27 @@ config_locations:
       - keystone
       - keystone_cron
 
-#  manila:
-#    puppet_config_name: manila
-#    hiera: ""
-#    config:
-#    section_name: database
-#    parameter_name: connection
-#    containers:
-#      -
-#  mistral:
-#    puppet_config_name: mistral
-#    hiera: ""
-#    config:
-#    section_name: database
-#   parameter_name: connection
-#    containers:
+  manila:
+    puppet_config_name: manila
+    hiera: "manila::db::database_connection"
+    config: /etc/manila/manila.conf
+    section_name: manila_config
+    parameter_name: connection
+    containers:
+      - manila_api
+
+  mistral:
+    puppet_config_name: mistral
+    hiera: "mistral::database_connection"
+    config: /etc/mistral/mistral.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - mistral_api
+      - mistral_engine
+      - mistral_event_engine
+      - mistral_executor
+
 
   neutron:
     puppet_config_name: neutron
@@ -170,10 +180,7 @@ config_locations:
       - nova_api
       - nova_api_cron
 
-# also:
-# nova::cell0_database_connection
-
-    # note that nova_placement in OSP13 is placement in OSP15
+  # note that nova_placement in OSP13 is placement in OSP15
   nova_placement:
     puppet_config_name: nova_placement
     hiera: "nova::placement_database_connection"

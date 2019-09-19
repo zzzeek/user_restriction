@@ -14,8 +14,9 @@ instructions:
    installed in $PATH, as well as has password-less ssh access
    to the controller nodes.
 
-2. enter IP addresses of controller nodes into hosts, replacing the
-   sample addresses currently present.
+2. enter IP addresses of controller nodes into the ``hosts`` file
+   (that is, the Ansible inventory file), replacing the sample
+   addresses currently present.
 
 3. View the Ansible tasks which will run::
 

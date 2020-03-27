@@ -165,6 +165,7 @@ config_locations:
       - neutron_plugin_plumgrid
 
   nova:
+    # config name gives us /var/lib/config-data/puppet-generated/nova/etc/my.cnf.d/account_per_controller.cnf
     puppet_config_name: nova
     hiera: "nova::database_connection"
     config: /etc/nova/nova.conf
@@ -175,6 +176,9 @@ config_locations:
       - nova_metadata
       - nova_scheduler
       - nova_consoleauth
+    write_to_other_apcs:
+      - nova_placement
+      - nova_api
 
   nova_api:
     puppet_config_name: nova
@@ -191,6 +195,9 @@ config_locations:
         config: /etc/nova/nova.conf
         section_name: database
         parameter_name: connection
+    write_to_other_apcs:
+      - nova_placement
+      - nova
 
   # note that nova_placement in OSP13 is placement in OSP15
   nova_placement:
@@ -201,6 +208,9 @@ config_locations:
     parameter_name: connection
     containers:
       - nova_placement
+    write_to_other_apcs:
+      - nova
+      - nova_api
 
 
 #  octavia:

@@ -46,10 +46,28 @@
     seuser: "{{ etc_seuser }}"
     serole: "{{ etc_serole }}"
     setype: "{{ etc_setype }}"
-  with_items:
+  loop:
     - {parameter_name: "user", value: "{{ db_apc_username }}"}
     - {parameter_name: "password", value: "{{ db_apc_password }}"}
     - {parameter_name: "host", value: "{{ local_ip_address }}"}
     - {parameter_name: "port", value: "{{ local_mysql_port }}"}  # 3307
     - {parameter_name: "bind_address", value: "{{ local_ip_address }}"}
 
+- name: "{{ application_name }}: write data to other account_per_controller.cnf"
+  ini_file:
+    path: "{{ config_locations[item.0].controller_account_per_controller }}"
+    section: "{{ application_name }}"
+    option: "{{ item.1.parameter_name }}"
+    value: "{{ item.1.value }}"
+    seuser: "{{ etc_seuser }}"
+    serole: "{{ etc_serole }}"
+    setype: "{{ etc_setype }}"
+  loop: "{{ files_to_write | product(parameters) | list }}"
+  vars:
+    parameters:
+      - {parameter_name: "user", value: "{{ db_apc_username }}"}
+      - {parameter_name: "password", value: "{{ db_apc_password }}"}
+      - {parameter_name: "host", value: "{{ local_ip_address }}"}
+      - {parameter_name: "port", value: "{{ local_mysql_port }}"}  # 3307
+      - {parameter_name: "bind_address", value: "{{ local_ip_address }}"}
+    files_to_write: "{{ config_data.write_to_other_apcs }}"

@@ -13,7 +13,7 @@
 
 - name: "{{ application_name }}: disable grants"
   shell: |
-    {{ mysql_cli }} "REVOKE ALL PRIVILEGES ON {{ database_name }}.* FROM '{{ tripleo_db_user }}'@'%';"
+    {{ mysql_cli }} "DELETE FROM mysql.user WHERE user='{{ tripleo_db_user }}'; FLUSH PRIVILEGES"
   ignore_errors: true
   when: not enable_ooo_grants
   run_once: true    # tripleo_db_user is one per all hosts

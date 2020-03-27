@@ -164,6 +164,8 @@ config_locations:
     containers:
       - neutron_plugin_plumgrid
 
+  # for nova, both the nova and nova_api services use the same puppet
+  # generated conf file.  nova_placement is separate.
   nova:
     # config name gives us /var/lib/config-data/puppet-generated/nova/etc/my.cnf.d/account_per_controller.cnf
     puppet_config_name: nova
@@ -176,9 +178,16 @@ config_locations:
       - nova_metadata
       - nova_scheduler
       - nova_consoleauth
+    extra_configs:
+        # write the nova URL into the nova_placement/nova.conf file
+      - puppet_config_name: nova_placement
+        config: /etc/nova/nova.conf
+        section_name: database
+        parameter_name: connection
+
+    # write into other account_per_controller files too
     write_to_other_apcs:
       - nova_placement
-      - nova_api
 
   nova_api:
     puppet_config_name: nova
@@ -190,14 +199,13 @@ config_locations:
       - nova_api
       - nova_api_cron
     extra_configs:
-        # nova-api reads the "nova" URL from the file too
-      - puppet_config_name: nova
+        # write the nova_api URL into the nova_placement/nova.conf file
+      - puppet_config_name: nova_placement
         config: /etc/nova/nova.conf
-        section_name: database
+        section_name: api_database
         parameter_name: connection
     write_to_other_apcs:
       - nova_placement
-      - nova
 
   # note that nova_placement in OSP13 is placement in OSP15
   nova_placement:
@@ -210,7 +218,6 @@ config_locations:
       - nova_placement
     write_to_other_apcs:
       - nova
-      - nova_api
 
 
 #  octavia:

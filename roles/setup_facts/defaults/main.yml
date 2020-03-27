@@ -10,7 +10,7 @@ etc_setype: "container_file_t"
 
 
 config_locations:
-  aodh:
+  aodh_base:
     puppet_config_name: aodh_base
     hiera: "aodh::db::database_connection"
     config: /etc/aodh/aodh.conf
@@ -18,6 +18,15 @@ config_locations:
     parameter_name: connection
     containers:
       - aodh_base
+
+  aodh:
+    puppet_config_name: aodh
+    hiera: "aodh::db::database_connection"
+    config: /etc/aodh/aodh.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - aodh
 
 #  barbican:
 #    puppet_config_name: barbican

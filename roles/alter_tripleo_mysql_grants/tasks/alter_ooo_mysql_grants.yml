@@ -6,8 +6,7 @@
 
 - name: "{{ application_name }}: recreate restored users and enable grants"
   shell: |
-    {{ mysql_cli }} "CREATE USER IF NOT EXISTS '{{ tripleo_db_user }}'@'%' IDENTIFIED BY '{{ tripleo_db_password }}';"
-    {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ tripleo_db_user }}'@'%' IDENTIFIED BY PASSWORD '{{ tripleo_db_password }}';"
+    {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ tripleo_db_user }}'@'%' IDENTIFIED BY '{{ tripleo_db_password }}';"
     {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ tripleo_db_user }}'@'%';"
   when: enable_ooo_grants
   run_once: true    # tripleo_db_user is one per all hosts

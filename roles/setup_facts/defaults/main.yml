@@ -164,7 +164,10 @@ config_locations:
     containers:
       - neutron_plugin_plumgrid
 
+  # for nova, both the nova and nova_api services use the same puppet
+  # generated conf file.  nova_placement is separate.
   nova:
+    # config name gives us /var/lib/config-data/puppet-generated/nova/etc/my.cnf.d/account_per_controller.cnf
     puppet_config_name: nova
     hiera: "nova::database_connection"
     config: /etc/nova/nova.conf
@@ -175,6 +178,16 @@ config_locations:
       - nova_metadata
       - nova_scheduler
       - nova_consoleauth
+    extra_configs:
+        # write the nova URL into the nova_placement/nova.conf file
+      - puppet_config_name: nova_placement
+        config: /etc/nova/nova.conf
+        section_name: database
+        parameter_name: connection
+
+    # write into other account_per_controller files too
+    write_to_other_apcs:
+      - nova_placement
 
   nova_api:
     puppet_config_name: nova
@@ -186,11 +199,13 @@ config_locations:
       - nova_api
       - nova_api_cron
     extra_configs:
-        # nova-api reads the "nova" URL from the file too
-      - puppet_config_name: nova
+        # write the nova_api URL into the nova_placement/nova.conf file
+      - puppet_config_name: nova_placement
         config: /etc/nova/nova.conf
-        section_name: database
+        section_name: api_database
         parameter_name: connection
+    write_to_other_apcs:
+      - nova_placement
 
   # note that nova_placement in OSP13 is placement in OSP15
   nova_placement:
@@ -201,6 +216,15 @@ config_locations:
     parameter_name: connection
     containers:
       - nova_placement
+    extra_configs:
+      # copy back placement into the main nova service, it is likely not
+      # used however we want to remove all occurrences of the old username
+      - puppet_config_name: nova
+        config: /etc/nova/nova.conf
+        section_name: placement_database
+        parameter_name: connection
+    write_to_other_apcs:
+      - nova
 
 
 #  octavia:

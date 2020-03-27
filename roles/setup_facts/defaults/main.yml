@@ -18,6 +18,10 @@ config_locations:
     parameter_name: connection
     containers:
       - aodh_base
+      - aodh_listener
+      - aodh_evaluator
+      - aodh_api
+      - aodh_notifier
 
   aodh:
     puppet_config_name: aodh
@@ -26,7 +30,11 @@ config_locations:
     section_name: database
     parameter_name: connection
     containers:
-      - aodh
+      - aodh_listener
+      - aodh_evaluator
+      - aodh_api
+      - aodh_notifier
+
 
 #  barbican:
 #    puppet_config_name: barbican
@@ -245,6 +253,19 @@ config_locations:
 #    containers:
 #
 #    # OSP15 and above
+
+  # observed in OSP 13
+  panko:
+    puppet_config_name: panko
+    hiera: "panko::db::database_connection"
+    config: /etc/panko/panko.conf
+    section_name: database
+    parameter_name: connection
+    containers:
+      - panko_api
+      - panko_api_cron
+
+  # TODO: what is this?  nova_placement?
   placement:
     puppet_config_name: placement
     hiera: "placement::db::database_connection"

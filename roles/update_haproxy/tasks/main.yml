@@ -1,6 +1,9 @@
 - name: get haproxy container name
+  # we are trying to ensure we don't grab names like "neutron-haproxy-qrouter".
+  # not sure how to locate other names that might exist.  so ensure "haproxy" is
+  # at the start of the string w/ an extra grep
   shell: |
-    {{ container_cli }} ps --format \{\{'.Names'\}\} --filter name=haproxy
+    {{ container_cli }} ps --format \{\{'.Names'\}\} --filter name=haproxy-bundle | grep -e "^haproxy"
   register: command_output
 
 - name: add a local IP bind for haproxy

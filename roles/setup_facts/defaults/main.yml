@@ -216,6 +216,13 @@ config_locations:
     parameter_name: connection
     containers:
       - nova_placement
+    extra_configs:
+      # copy back placement into the main nova service, it is likely not
+      # used however we want to remove all occurrences of the old username
+      - puppet_config_name: nova
+        config: /etc/nova/nova.conf
+        section_name: placement_database
+        parameter_name: connection
     write_to_other_apcs:
       - nova
 

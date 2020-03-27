@@ -70,4 +70,4 @@
       - {parameter_name: "host", value: "{{ local_ip_address }}"}
       - {parameter_name: "port", value: "{{ local_mysql_port }}"}  # 3307
       - {parameter_name: "bind_address", value: "{{ local_ip_address }}"}
-    files_to_write: "{{ config_data.write_to_other_apcs }}"
+    files_to_write: "{{ config_data.write_to_other_apcs|default([]) }}"

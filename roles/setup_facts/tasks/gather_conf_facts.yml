@@ -54,6 +54,66 @@
         ooo_db_password: "{{ command_output.stdout_lines[5] }}"
         ooo_db_read_default_group: "{{ command_output.stdout_lines[6] }}"
 
+    - name: "{{ application_name }}: read keys from all_nodes.json"
+      shell: "{{ script_content }}"
+      vars:
+        # assumptions in this script:
+        # 1. the docker/podman container names are the same names as we
+        #    would see in the keys within /etc/puppet/hieradata/all_nodes.json
+        # 2. not every container name is present in all_nodes, however
+        #    if we retrieve short_bootstrap_node_name for one of them, it's
+        #    the same name for any of them
+        # 3. we don't hard-assume this but the short_bootstrap_node_name is
+        #    really just one address for the whole overcloud, it's in
+        #    /etc/puppet/hieradata/bootstrap_node.json.   Not sure why
+        #    it's copied into many records in all_nodes.json, however we're
+        #    getting it on a per-node basis anyway.
+        # 4. We can retrieve the IP number of this controller node on the
+        #    internal API network using the key <hostname>.internalapi
+        #    in /etc/hosts
+        # 5. This internalapi IP number will be one of three hosts used in
+        #    the mysql.users table for this service's MySQL user name.
+        #    the other two are the mysql_vip and %.
+        script_content: |
+          cat << EOF | python
+          from __future__ import print_function
+          import json
+
+          struct = json.load(open("/etc/puppet/hieradata/all_nodes.json"))
+          for possible_name in {{ config_data.containers }}:
+              if "%s_short_bootstrap_node_name" % possible_name in struct:
+                  bootstrap_node_name = struct["%s_short_bootstrap_node_name" % possible_name]
+                  break
+          else:
+              raise ValueError(
+                  "Could not locate bootstrap node name "
+                  "for config {{ application_name }}"
+              )
+          print(bootstrap_node_name)
+
+          etc_hosts_tokens = [
+              (tokens[0], tokens[1:])
+              for tokens in [
+                  line.split() for line in open("/etc/hosts")
+              ] if len(tokens) > 1
+          ]
+          etc_hosts_lookup = {name: ip for ip, names in etc_hosts_tokens for name in names}
+          bootstrap_node_internal_ip = etc_hosts_lookup["%s.internalapi" % bootstrap_node_name]
+          print(bootstrap_node_internal_ip)
+
+          vip_struct = json.load(open("/etc/puppet/hieradata/vip_data.json"))
+          mysql_vip = vip_struct["mysql_vip"]
+          print(mysql_vip)
+          EOF
+      register: command_output
+
+    - name: "{{ application_name }}: set hieradata controller facts"
+      set_fact:
+         ooo_bootstrap_controller_name: "{{ command_output.stdout_lines[0] }}"
+         ooo_bootstrap_internal_ip: "{{ command_output.stdout_lines[1] }}"
+         ooo_mysql_vip: "{{ command_output.stdout_lines[2] }}"
+
+
     - name: "{{ application_name }}: organized gathered data"
       set_fact:
         new_record:
@@ -69,6 +129,9 @@
           - tripleo_db_read_default_group: "{{ ooo_db_read_default_group }}"
           - container_account_per_controller: "{{ container_account_per_controller }}"
           - controller_account_per_controller: "{{ controller_account_per_controller }}"
+          - tripleo_bootstrap_controller: "{{ ooo_bootstrap_controller_name }}"
+          - tripleo_bootstrap_internal_ip: "{{ ooo_bootstrap_internal_ip }}"
+          - tripleo_mysql_vip: "{{ ooo_mysql_vip }}"
 
     - name: "{{ application_name }}: add gathered data"
       set_fact:

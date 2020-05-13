@@ -9,5 +9,6 @@
     - { role: alter_tripleo_mysql_grants, tags: ['restore-tripleo-mysql-grants'], vars: {enable_ooo_grants: true}}
     - { role: update_nova_cells, tags: ['update-nova-cells'], vars: {revert_nova_cells: true}}
     - { role: restart_containers, tags: ['restart-containers']}
+    - { role: create_mysql_grants, tags: ['drop-mysql-grants'], vars: {enable_apc_grants: false}}
 
 

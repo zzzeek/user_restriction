@@ -27,6 +27,13 @@
   shell: |
     {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ apc_db_user }}'@'{{ apc_db_bind_address }}' IDENTIFIED BY '{{ apc_db_password }}';"
     {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ apc_db_user }}'@'{{ apc_db_bind_address }}';"
+  when: enable_apc_grants
 
+
+
+- name: "{{ application_name }}: delete user"
+  shell: |
+    {{ mysql_cli }} "DROP USER IF EXISTS '{{ apc_db_user }}'@'{{ apc_db_bind_address }}'; FLUSH PRIVILEGES "
+  when: not enable_apc_grants
 
 

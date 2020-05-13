@@ -7,7 +7,7 @@
     - { role: setup_facts, tags: ['always', 'setup-facts']}
     - { role: update_haproxy, tags: ['update-haproxy']}
     - { role: write_apc_conf, tags: ['write-apc-conf']}
-    - { role: create_mysql_grants, tags: ['create-mysql-grants']}
+    - { role: create_mysql_grants, tags: ['create-mysql-grants'], vars: {enable_apc_grants: true}}
     - { role: write_service_urls, tags: ['write-service-urls']}
     - { role: update_nova_cells, tags: ['update-nova-cells'], vars: {convert_nova_cells: true}}
     - { role: restart_containers, tags: ['restart-containers']}

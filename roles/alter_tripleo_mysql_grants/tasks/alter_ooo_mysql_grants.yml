@@ -8,6 +8,10 @@
   shell: |
     {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ tripleo_db_user }}'@'%' IDENTIFIED BY '{{ tripleo_db_password }}';"
     {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ tripleo_db_user }}'@'%';"
+    {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ tripleo_db_user }}'@'{{ config_data.tripleo_bootstrap_internal_ip }}' IDENTIFIED BY '{{ tripleo_db_password }}';"
+    {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ tripleo_db_user }}'@'{{ config_data.tripleo_bootstrap_internal_ip }}';"
+    {{ mysql_cli }} "GRANT USAGE ON *.* TO '{{ tripleo_db_user }}'@'{{ config_data.tripleo_mysql_vip }}' IDENTIFIED BY '{{ tripleo_db_password }}';"
+    {{ mysql_cli }} "GRANT ALL PRIVILEGES ON {{ database_name }}.* TO '{{ tripleo_db_user }}'@'{{ config_data.tripleo_mysql_vip }}';"
   when: enable_ooo_grants
   run_once: true    # tripleo_db_user is one per all hosts
 
@@ -16,9 +20,10 @@
 # need.
 - name: "{{ application_name }}: drop plain mysql users"
   shell: |
-    {{ mysql_cli }} "DELETE FROM mysql.user WHERE user='{{ tripleo_db_user }}'; FLUSH PRIVILEGES"
+    {{ mysql_cli }} "DROP USER IF EXISTS '{{ tripleo_db_user }}'@'%';"
+    {{ mysql_cli }} "DROP USER IF EXISTS '{{ tripleo_db_user }}'@'{{ config_data.tripleo_bootstrap_internal_ip }}'"
+    {{ mysql_cli }} "DROP USER IF EXISTS '{{ tripleo_db_user }}'@'{{ config_data.tripleo_mysql_vip }}'"
   ignore_errors: true
   when: not enable_ooo_grants
   run_once: true    # tripleo_db_user is one per all hosts
-
 
